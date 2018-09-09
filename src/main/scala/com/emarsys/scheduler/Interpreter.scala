@@ -18,9 +18,9 @@ object Interpreter {
 
     new (ScheduleOp[F, ?] ~> ScheduleState[F, ?]) {
       def apply[A](s: ScheduleOp[F, A]) = s match {
-        case After(d, F)          => State.modify(fs => after(d, F) :: fs)
-        case Repeat(F, i)         => State.modify(fs => repeat(F, i) :: fs)
-        case RepeatAfter(d, F, i) => State.modify(fs => after(d, repeat(F, i)) :: fs)
+        case After(d, fa)      => State.modify(fs => after(d, fa) :: fs)
+        case Repeat(fa, i)     => State.modify(fs => repeat(fa, i) :: fs)
+        case RepeatA(d, fa, i) => State.modify(fs => after(d, repeat(fa, i)) :: fs)
       }
     }
   }
