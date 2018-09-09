@@ -6,3 +6,10 @@ script:
   - sbt ++$TRAVIS_SCALA_VERSION test
 jdk:
   - oraclejdk8
+cache:
+  directories:
+    - $HOME/.ivy2/cache
+    - $HOME/.sbt
+before_cache:
+  - find $HOME/.ivy2/cache -name "ivydata-*.properties" -print -delete
+  - find $HOME/.sbt        -name "*.lock"               -print -delete
