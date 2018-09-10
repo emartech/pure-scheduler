@@ -37,3 +37,18 @@ libraryDependencies += "org.typelevel" %% "cats-effect"   % "1.0.0"
 
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7")
 addCompilerPlugin("io.tryp"        % "splain"          % "0.3.1" cross CrossVersion.patch)
+
+inThisBuild(List(
+  licenses := Seq("MIT" -> url("http://opensource.org/licenses/MIT")),
+  homepage := Some(url("https://github.com/emartech/pure-scheduler")),
+  developers := List(
+    Developer("doczir", "Robert Doczi", "doczi.r@gmail.com", url("https://github.com/doczir")),
+    Developer("miklos-martin", "Miklos Martin", "miklos.martin@gmail.com", url("https://github.com/miklos-martin"))
+  ),
+  scmInfo := Some(ScmInfo(url("https://github.com/emartech/pure-scheduler"), "scm:git:git@github.com:emartech/pure-scheduler.git")),
+
+  // These are the sbt-release-early settings to configure
+  pgpPublicRing := file("./ci/local.pubring.asc"),
+  pgpSecretRing := file("./ci/local.secring.asc"),
+  releaseEarlyWith := SonatypePublisher
+))
