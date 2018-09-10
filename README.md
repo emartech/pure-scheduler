@@ -30,13 +30,13 @@ val schedule = for {
 ```
 
 These effects, when run, start all at once in parallel, despite being composed this way.
-Building a schedule works with any `F[_]`. Running it, however puts some constraints on it:
+Building a schedule works with any `F[_]`. Running it, however, puts some constraints on it:
 
 ```scala
 def run[F[_]: Monad: Timer, G[_], A](schedule: Schedule[F, A])(implicit P: Parallel[F, G]): F[Unit]
 ```
 
-The way that the program is interpreted, it is also important for the effect type to be referentially transparent, this won't work with, say, `Future`.
+It is also important for the effect type to be lazy and referentially transparent: repeating won't work with, say, `Future`.
 
 If we have picked `cats.effect.IO`, for example, then the following imports and implicits are required to run our example schedule.
 
