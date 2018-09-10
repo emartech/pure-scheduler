@@ -30,6 +30,8 @@ scalacOptions ++= Seq(
   "-Xlint"
 )
 
+scalafmtOnCompile := true
+
 libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.1" % "test"
 libraryDependencies += "org.typelevel" %% "cats-core"     % "1.3.1"
 libraryDependencies += "org.typelevel" %% "cats-free"     % "1.3.1"

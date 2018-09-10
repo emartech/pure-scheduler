@@ -80,14 +80,14 @@ class SchedulerSpec extends WordSpec with Matchers {
           } yield ()
 
         scheduled.unsafeRunSync.reverse shouldEqual List(
-          "repeat",         // <- 0 ms
-          "5ms delay",      // <- 5 ms
+          "repeat", // <- 0 ms
+          "5ms delay", // <- 5 ms
           "delayed repeat", // <- 10 ms
-          "repeat",         // <- 15 ms
+          "repeat", // <- 15 ms
           "delayed repeat", // <- 25 ms
-          "repeat",         // <- 30 ms
+          "repeat", // <- 30 ms
           "delayed repeat", // <- 40 ms
-          "repeat"          // <- 45 ms
+          "repeat" // <- 45 ms
         )
       }
     }
