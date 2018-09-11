@@ -63,7 +63,7 @@ class SchedulerSpec extends WordSpec with Matchers {
 
       "repeatAfter is used" should {
         "re-run in the given timeframe after the delay as many times as they can" in new ScheduleScope {
-          val schedule = ref => dsl.repeatAfter(10.millis, io("R", ref), 15.millis)
+          val schedule = ref => dsl.repeatAfter(11.millis, io("R", ref), 15.millis)
 
           scheduled.unsafeRunSync shouldEqual List.fill(3)("R")
         }
