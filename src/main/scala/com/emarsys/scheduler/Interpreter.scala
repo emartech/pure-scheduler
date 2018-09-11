@@ -12,9 +12,8 @@ object Interpreter {
   type ScheduleState[F[_], A] = State[List[F[Unit]], A]
 
   def interpret[F[_]: Monad](implicit timer: Timer[F]) = {
-    def after(d: FDur, F: F[Unit]) = timer.sleep(d) *> F
-    def repeat(F: F[Unit], i: FDur): F[Unit] =
-      (F *> timer.sleep(i)).foreverM
+    def after(d: FDur, F: F[Unit]) = timer.sleep(d) >> F
+    def repeat(F: F[Unit], i: FDur): F[Unit] = (F *> timer.sleep(i)).foreverM
 
     new (ScheduleOp[F, ?] ~> ScheduleState[F, ?]) {
       def apply[A](s: ScheduleOp[F, A]) = s match {
