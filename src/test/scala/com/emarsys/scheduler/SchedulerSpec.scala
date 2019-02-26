@@ -3,112 +3,95 @@ package com.emarsys.scheduler
 import cats.effect.IO
 import cats.effect.concurrent.Ref
 import cats.effect.laws.util.TestContext
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.{Assertions, Matchers, WordSpec}
 
 import scala.concurrent.duration._
+import scala.util._
 
-class SchedulerSpec extends WordSpec with Matchers {
-  import Algebra._
+class SchedulerSpec extends WordSpec with Assertions with Matchers {
+  import syntax._
 
   val ctx                   = TestContext()
   implicit val contextShift = IO.contextShift(ctx)
   implicit val timer        = ctx.timer[IO]
 
   trait ScheduleScope {
+    type Out
     val timeBox = 5 seconds
-    def schedule: Ref[IO, List[String]] => Schedule[IO, Unit]
+    val program: IO[Out]
 
-    def io(id: String, ref: Ref[IO, List[String]]) =
-      ref.modify(ids => (id :: ids, ()))
-
-    def scheduled: IO[List[String]] =
-      Ref.of[IO, List[String]](Nil) flatMap { ref =>
-        dsl.run(schedule(ref)).timeoutTo(timeBox, IO.unit) flatMap (_ => ref.get)
-      }
-
-    lazy val runSchedule = {
-      val f = scheduled.unsafeToFuture()
+    lazy val runProgram = {
+      val f = program.unsafeToFuture
       ctx.tick(timeBox)
       f
     }
 
-    def endState = runSchedule.value.fold[List[String]](Nil)(_.getOrElse(Nil))
+    lazy val endState = runProgram.value match {
+      case None                 => fail(s"Scheduled program have not completed in $timeBox")
+      case Some(Failure(e))     => fail(e.toString, e)
+      case Some(Success(state)) => state
+    }
+  }
+
+  trait RunTimesScope extends ScheduleScope {
+    type Out = (Long, List[Long])
+
+    val schedule: Schedule.Aux[IO, Int, Unit, Int]
+
+    val collectRunTimes: Ref[IO, List[Long]] => IO[Unit] = { ref =>
+      for {
+        current <- timer.clock.realTime(SECONDS)
+        _       <- ref.modify(ts => (current :: ts, ()))
+      } yield ()
+    }
+
+    val program = for {
+      ref      <- Ref.of[IO, List[Long]](Nil)
+      start    <- timer.clock.realTime(SECONDS)
+      _        <- collectRunTimes(ref).runOn(schedule).timeoutTo(timeBox, IO.unit)
+      runTimes <- ref.get
+    } yield (start, runTimes)
+
+    lazy val (start, runTimes)          = endState
+    lazy val differencesBetweenRunTimes = runTimes.zip(runTimes.tail) map { case (c, p) => c - p }
+
+    def startedImmediately = {
+      runTimes should not be empty
+      runTimes.last shouldEqual start
+    }
   }
 
   "Referentially transparent effect types" when {
-    "scheduled with now" should {
-      "run in parallel" in new ScheduleScope {
-        val schedule = ref =>
-          for {
-            _ <- dsl.now(io("a", ref))
-            _ <- dsl.now(io("b", ref))
-            _ <- dsl.now(io("c", ref))
-          } yield ()
+    "run on a recurring schedule" should {
+      "recur as specified and return the number of occurences" in new ScheduleScope {
+        type Out = Int
+        val program = IO(100).runOn(Schedule.occurs(5))
 
-        runSchedule
-
-        endState.sorted shouldEqual List("a", "b", "c")
+        endState shouldEqual 5
       }
     }
 
-    "scheduled with different delays" should {
-      "run one after the other as specified" in new ScheduleScope {
-        val schedule = ref =>
-          for {
-            _ <- dsl.now(io("a", ref))
-            _ <- dsl.after(2 seconds, io("b", ref))
-            _ <- dsl.after(1 seconds, io("c", ref))
-          } yield ()
+    "run on an initially delayed schedule" should {
+      "only start after the specified delay" in new ScheduleScope {
+        type Out = (Long, Long)
 
-        runSchedule
+        val program = for {
+          start <- timer.clock.realTime(SECONDS)
+          _     <- IO(100).runOn(Schedule.occurs[IO, Int](1).after(1.second))
+          end   <- timer.clock.realTime(SECONDS)
+        } yield (start, end)
 
-        endState.reverse shouldEqual List("a", "c", "b")
+        val (start, end) = endState
+        end - start shouldEqual 1
       }
     }
 
-    "scheduled on repeat" when {
-      "the repeat starts immediately" should {
-        "re-run in the given timeframe as many times as they can" in new ScheduleScope {
-          val schedule = ref => dsl.repeat(io("R", ref), 1500 millis)
+    "run on a spaced schedule" should {
+      "start immediately and run with the specified fixed delay afterwards" in new RunTimesScope {
+        val schedule = Schedule.spaced(1.second)
 
-          runSchedule
-
-          endState shouldEqual List.fill(4)("R")
-        }
-      }
-
-      "repeatAfter is used" should {
-        "re-run in the given timeframe after the delay as many times as they can" in new ScheduleScope {
-          val schedule = ref => dsl.repeatAfter(1100 millis, io("R", ref), 1500 millis)
-
-          runSchedule
-
-          endState shouldEqual List.fill(3)("R")
-        }
-      }
-    }
-
-    "scheduled" should {
-      "run in parallel, starting at the same time" in new ScheduleScope {
-        val schedule = ref =>
-          for {
-            _ <- dsl.repeat(io("repeat", ref), 1500 millis)
-            _ <- dsl.after(500 millis, io("500ms delay", ref))
-            _ <- dsl.repeatAfter(1 second, io("delayed repeat", ref), 1500 millis)
-          } yield ()
-
-        runSchedule
-
-        endState.reverse shouldEqual List(
-          "repeat", // <- 0 ms
-          "500ms delay", // <- 500 ms
-          "delayed repeat", // <- 1000 ms
-          "repeat", // <- 1500 ms
-          "delayed repeat", // <- 2500 ms
-          "repeat", // <- 3000 ms
-          "delayed repeat", // <- 4000 ms
-          "repeat" // <- 4500 ms
-        )
+        startedImmediately
+        differencesBetweenRunTimes.forall(_ == 1) shouldBe true
       }
     }
   }

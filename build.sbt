@@ -1,6 +1,6 @@
 organization := "com.emarsys"
 name := "pure-scheduler"
-scalaVersion := "2.12.6"
+scalaVersion := "2.12.8"
 
 scalacOptions ++= Seq(
   "-language:higherKinds",
@@ -32,14 +32,15 @@ scalacOptions ++= Seq(
 
 scalafmtOnCompile := true
 
-libraryDependencies += "org.scalatest" % "scalatest_2.12"    % "3.0.1" % "test"
-libraryDependencies += "org.typelevel" %% "cats-core"        % "1.3.1"
-libraryDependencies += "org.typelevel" %% "cats-free"        % "1.3.1"
-libraryDependencies += "org.typelevel" %% "cats-effect"      % "1.0.0"
-libraryDependencies += "org.typelevel" %% "cats-effect-laws" % "1.0.0" % "test"
+libraryDependencies += "org.typelevel"  %% "cats-core"        % "1.5.0"
+libraryDependencies += "org.typelevel"  %% "cats-effect"      % "1.1.0"
+libraryDependencies += "org.scalacheck" %% "scalacheck"       % "1.14.0" % Test
+libraryDependencies += "org.scalatest"  %% "scalatest"        % "3.0.1"  % Test
+libraryDependencies += "org.typelevel"  %% "cats-testkit"     % "1.5.0"  % Test
+libraryDependencies += "org.typelevel"  %% "cats-effect-laws" % "1.1.0"  % Test
 
 addCompilerPlugin("org.spire-math" %% "kind-projector" % "0.9.7")
-addCompilerPlugin("io.tryp"        % "splain"          % "0.3.1" cross CrossVersion.patch)
+addCompilerPlugin("io.tryp"        % "splain"          % "0.3.5" cross CrossVersion.patch)
 
 inThisBuild(
   List(
