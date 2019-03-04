@@ -1,5 +1,6 @@
 package com.emarsys.scheduler
 
+import cats.Applicative
 import cats.effect.IO
 import cats.effect.concurrent.Ref
 import cats.effect.laws.util.TestContext
@@ -19,6 +20,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
     type Out
     val timeBox = 5 seconds
     val program: IO[Out]
+    implicit val A = implicitly[Applicative[IO]]
 
     lazy val runProgram = {
       val f = program.unsafeToFuture
@@ -36,7 +38,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
   trait RunTimesScope extends ScheduleScope {
     type Out = (Long, List[Long])
 
-    val schedule: Schedule.Aux[IO, Int, Unit, Int]
+    val schedule: Schedule[IO, Any, Int]
 
     val collectRunTimes: Ref[IO, List[Long]] => IO[Unit] = { ref =>
       for {
@@ -77,7 +79,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
 
         val program = for {
           start <- timer.clock.realTime(SECONDS)
-          _     <- IO(100).runOn(Schedule.occurs[IO, Int](1).after(1.second))
+          _     <- IO(100).runOn(Schedule.occurs(1).after(1.second))
           end   <- timer.clock.realTime(SECONDS)
         } yield (start, end)
 

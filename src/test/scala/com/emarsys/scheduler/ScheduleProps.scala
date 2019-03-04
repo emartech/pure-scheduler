@@ -67,15 +67,15 @@ trait ScheduleGenerators {
   implicit def cogenDecision[S: Cogen, B]: Cogen[Decision[S, B]] =
     Cogen((seed, d) => Cogen[S].perturb(seed, d.state))
 
-  implicit def genSchedule[F[_]: Applicative, S: Arbitrary, A, B: Arbitrary]: Arbitrary[Schedule.Aux[F, S, A, B]] =
+  implicit def genSchedule[F[+_]: Applicative, S: Arbitrary, A, B: Arbitrary]: Arbitrary[Schedule.Aux[F, S, A, B]] =
     Arbitrary(
       for {
         i <- arbitrary[Init[S]]
         d <- arbitrary[Decision[S, B]]
-      } yield Schedule[F, S, A, B](i.pure, (_, _) => d.pure)
+      } yield Schedule[F, S, A, B](i.pure[F], (_, _) => d.pure[F])
     )
 
-  implicit def cogenSchedule[F[_], S, A, B](implicit C: Cogen[F[Init[S]]]): Cogen[Schedule.Aux[F, S, A, B]] =
+  implicit def cogenSchedule[F[+_], S, A, B](implicit C: Cogen[F[Init[S]]]): Cogen[Schedule.Aux[F, S, A, B]] =
     Cogen((seed, s) => C.perturb(seed, s.initial))
 }
 
