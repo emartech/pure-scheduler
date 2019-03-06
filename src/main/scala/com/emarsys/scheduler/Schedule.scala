@@ -97,6 +97,14 @@ trait ScheduleInstances {
         (c, s) => fab.update(f(c), s).map(d => Decision(d.continue, d.delay, d.state, g(d.result)))
       )
   }
+
+  implicit def functorForSchedule[F[+ _]: Functor, S, A] = new Functor[Schedule.Aux[F, S, A, ?]] {
+    def map[B, C](fa: Schedule.Aux[F, S, A, B])(f: B => C) = profunctorForSchedule[F, S].rmap(fa)(f)
+  }
+
+  implicit def relaxedFunctorForSchedule[F[+ _]: Functor, A] = new Functor[Schedule[F, A, ?]] {
+    def map[B, C](fa: Schedule[F, A, B])(f: B => C) = functorForSchedule[F, fa.State, A].map(fa)(f)
+  }
 }
 
 trait PredefinedSchedules {

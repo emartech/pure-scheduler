@@ -40,6 +40,11 @@ class ScheduleProps extends CatsSuite with ScheduleGenerators with ArrowEq {
     "Schedule.ProfunctorLaws",
     ProfunctorTests[Schedule.Aux[List, Int, ?, ?]].profunctor[Unit, Int, Boolean, Int, Int, Int]
   )
+
+  checkAll(
+    "Schedule.FunctorLaws",
+    FunctorTests[Schedule.Aux[List, Unit, Int, ?]].functor[Int, Int, String]
+  )
 }
 
 trait ScheduleGenerators {
@@ -67,7 +72,7 @@ trait ScheduleGenerators {
   implicit def cogenDecision[S: Cogen, B]: Cogen[Decision[S, B]] =
     Cogen((seed, d) => Cogen[S].perturb(seed, d.state))
 
-  implicit def genSchedule[F[+_]: Applicative, S: Arbitrary, A, B: Arbitrary]: Arbitrary[Schedule.Aux[F, S, A, B]] =
+  implicit def genSchedule[F[+ _]: Applicative, S: Arbitrary, A, B: Arbitrary]: Arbitrary[Schedule.Aux[F, S, A, B]] =
     Arbitrary(
       for {
         i <- arbitrary[Init[S]]
@@ -75,7 +80,7 @@ trait ScheduleGenerators {
       } yield Schedule[F, S, A, B](i.pure[F], (_, _) => d.pure[F])
     )
 
-  implicit def cogenSchedule[F[+_], S, A, B](implicit C: Cogen[F[Init[S]]]): Cogen[Schedule.Aux[F, S, A, B]] =
+  implicit def cogenSchedule[F[+ _], S, A, B](implicit C: Cogen[F[Init[S]]]): Cogen[Schedule.Aux[F, S, A, B]] =
     Cogen((seed, s) => C.perturb(seed, s.initial))
 }
 

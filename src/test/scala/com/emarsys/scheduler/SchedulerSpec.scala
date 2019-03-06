@@ -11,6 +11,7 @@ import scala.util._
 
 class SchedulerSpec extends WordSpec with Assertions with Matchers {
   import syntax._
+  import cats.syntax.functor._
 
   val ctx                   = TestContext()
   implicit val contextShift = IO.contextShift(ctx)
@@ -152,6 +153,26 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
         val schedule = Schedule.occurs(2).delay(2.second) || Schedule.occurs(2).delay(1.second)
 
         differencesBetweenRunTimes.forall(_ == 1) shouldBe true
+      }
+    }
+
+    "combined with <*" should {
+      "work as AND but keep only the left output" in new ScheduleScope {
+        type Out = Int
+
+        val program = IO(100).runOn(Schedule.forever <* Schedule.occurs(1).map(_.toString))
+
+        endState shouldEqual 1
+      }
+    }
+
+    "combined with <*" should {
+      "work as AND but keep only the right output" in new ScheduleScope {
+        type Out = String
+
+        val program = IO(100).runOn(Schedule.forever *> Schedule.occurs(1).map(_.toString))
+
+        endState shouldEqual "1"
       }
     }
   }
