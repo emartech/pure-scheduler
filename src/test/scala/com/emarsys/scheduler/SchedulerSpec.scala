@@ -88,12 +88,23 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
     }
   }
 
-  "A spaced schedule" should {
-    "start immediately and run with the specified fixed delay afterwards" in new RunTimesScope {
-      val schedule = Schedule.spaced(1.second)
+  "A spaced schedule" when {
+    "defined via the `spaced` predefined schedule" should {
+      "start immediately and run with the specified fixed delay afterwards" in new RunTimesScope {
+        val schedule = Schedule.spaced(1.second)
 
-      startedImmediately
-      differencesBetweenRunTimes.forall(_ == 1) shouldBe true
+        startedImmediately
+        differencesBetweenRunTimes.forall(_ == 1) shouldBe true
+      }
+    }
+
+    "defined via the `space`-ing an existing schedule" should {
+      "start immediately and run with the specified fixed delay afterwards" in new RunTimesScope {
+        val schedule = Schedule.occurs(2).space(1.second)
+
+        startedImmediately
+        differencesBetweenRunTimes.forall(_ == 1) shouldBe true
+      }
     }
   }
 
@@ -150,7 +161,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       }
 
       "use the minimum of the delays for update" in new RunTimesScope {
-        val schedule = Schedule.occurs(2).delay(2.second) || Schedule.occurs(2).delay(1.second)
+        val schedule = Schedule.occurs(2).space(2.second) || Schedule.occurs(2).space(1.second)
 
         differencesBetweenRunTimes.forall(_ == 1) shouldBe true
       }

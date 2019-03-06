@@ -131,7 +131,7 @@ trait PredefinedSchedules {
     forever.after(delay)
 
   def spaced[F[+ _]: Applicative](interval: FiniteDuration): Schedule[F, Any, Int] =
-    forever.delay(interval)
+    forever.space(interval)
 }
 
 trait Combinators {
@@ -176,7 +176,7 @@ trait Combinators {
   ): Schedule[F, A, B] =
     mapInit(S)(_.copy(delay = delay))
 
-  def delay[F[+ _]: Functor, A, B](
+  def space[F[+ _]: Functor, A, B](
       S: Schedule[F, A, B],
       interval: FiniteDuration
   ): Schedule[F, A, B] =

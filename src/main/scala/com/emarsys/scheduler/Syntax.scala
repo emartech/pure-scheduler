@@ -19,7 +19,7 @@ final class ScheduleCombinators[F[+ _]: Apply, A, B](schedule: Schedule[F, A, B]
   import cats.syntax.functor._
 
   def after(delay: FiniteDuration)                          = Schedule.after(schedule, delay)
-  def delay(interval: FiniteDuration)                       = Schedule.delay(schedule, interval)
+  def space(interval: FiniteDuration)                       = Schedule.space(schedule, interval)
   def reconsider(f: Decision[schedule.State, B] => Boolean) = Schedule.reconsider(schedule)(f)
   def &&[C](that: Schedule[F, A, C])                        = Schedule.combine(schedule, that)(_ && _)(_ max _)
   def ||[C](that: Schedule[F, A, C])                        = Schedule.combine(schedule, that)(_ || _)(_ min _)
