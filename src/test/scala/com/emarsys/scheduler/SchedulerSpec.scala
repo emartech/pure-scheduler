@@ -96,7 +96,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
     }
   }
 
-  "Multiple schedules" when {
+  "A combination of two schedules" when {
     "combined with AND" should {
       "continue when both of the schedules continue" in new ScheduleScope {
         type Out = (Int, Int)
@@ -121,6 +121,35 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
 
       "use the maximum of the delays for update" in new RunTimesScope {
         val schedule = Schedule.occurs(2) && Schedule.spaced(1.second)
+
+        differencesBetweenRunTimes.forall(_ == 1) shouldBe true
+      }
+    }
+
+    "combined with OR" should {
+      "continue when at least one of the schedules continue" in new ScheduleScope {
+        type Out = (Int, Int)
+
+        val program = IO(100).runOn(Schedule.occurs(2) || Schedule.occurs(1))
+
+        endState shouldEqual ((2, 2))
+      }
+
+      "use the minimum of the delays for init" in new ScheduleScope {
+        type Out = (Long, Long)
+
+        val program = for {
+          start <- timer.clock.realTime(SECONDS)
+          _     <- IO(100).runOn(Schedule.occurs(1).after(2.second) || Schedule.occurs(1).after(1.second))
+          end   <- timer.clock.realTime(SECONDS)
+        } yield (start, end)
+
+        val (start, end) = endState
+        end - start shouldEqual 1
+      }
+
+      "use the minimum of the delays for update" in new RunTimesScope {
+        val schedule = Schedule.occurs(2).delay(2.second) || Schedule.occurs(2).delay(1.second)
 
         differencesBetweenRunTimes.forall(_ == 1) shouldBe true
       }
