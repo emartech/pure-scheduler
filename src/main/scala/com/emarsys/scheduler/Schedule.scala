@@ -124,6 +124,11 @@ trait PredefinedSchedules {
     (_, _) => Async[F].never
   )
 
+  def identity[F[+ _]: Applicative, A]: Schedule[F, A, A] = Schedule[F, Unit, A, A](
+    Init(0.millis, ()).pure[F],
+    (a, _) => Decision(continue = true, 0.millis, (), a).pure[F]
+  )
+
   def occurs[F[+ _]: Applicative](times: Int): Schedule[F, Any, Int] =
     forever.reconsider(_.result < times)
 

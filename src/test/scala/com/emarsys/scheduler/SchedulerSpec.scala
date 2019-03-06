@@ -187,4 +187,14 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       }
     }
   }
+
+  "The identity schedule" should {
+    "output the value from the effect" in new ScheduleScope {
+      type Out = Int
+
+      val program = IO(100).runOn(Schedule.identity <* Schedule.occurs(1))
+
+      endState shouldEqual 100
+    }
+  }
 }
