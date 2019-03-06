@@ -38,7 +38,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
   trait RunTimesScope extends ScheduleScope {
     type Out = (Long, List[Long])
 
-    val schedule: Schedule[IO, Any, Int]
+    def schedule: Schedule[IO, Any, Any]
 
     val collectRunTimes: Ref[IO, List[Long]] => IO[Unit] = { ref =>
       for {
@@ -63,36 +63,65 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
     }
   }
 
-  "Referentially transparent effect types" when {
-    "run on a recurring schedule" should {
-      "recur as specified and return the number of occurences" in new ScheduleScope {
-        type Out = Int
-        val program = IO(100).runOn(Schedule.occurs(5))
+  "A recurring schedule" should {
+    "recur as specified and return the number of occurences" in new ScheduleScope {
+      type Out = Int
+      val program = IO(100).runOn(Schedule.occurs(5))
 
-        endState shouldEqual 5
-      }
+      endState shouldEqual 5
     }
+  }
 
-    "run on an initially delayed schedule" should {
-      "only start after the specified delay" in new ScheduleScope {
+  "An initially delayed schedule" should {
+    "only start after the specified delay" in new ScheduleScope {
+      type Out = (Long, Long)
+
+      val program = for {
+        start <- timer.clock.realTime(SECONDS)
+        _     <- IO(100).runOn(Schedule.occurs(1).after(1.second))
+        end   <- timer.clock.realTime(SECONDS)
+      } yield (start, end)
+
+      val (start, end) = endState
+      end - start shouldEqual 1
+    }
+  }
+
+  "A spaced schedule" should {
+    "start immediately and run with the specified fixed delay afterwards" in new RunTimesScope {
+      val schedule = Schedule.spaced(1.second)
+
+      startedImmediately
+      differencesBetweenRunTimes.forall(_ == 1) shouldBe true
+    }
+  }
+
+  "Multiple schedules" when {
+    "combined with AND" should {
+      "continue when both of the schedules continue" in new ScheduleScope {
+        type Out = (Int, Int)
+
+        val program = IO(100).runOn(Schedule.forever && Schedule.occurs(1))
+
+        endState shouldEqual ((1, 1))
+      }
+
+      "use the maximum of the delays for init" in new ScheduleScope {
         type Out = (Long, Long)
 
         val program = for {
           start <- timer.clock.realTime(SECONDS)
-          _     <- IO(100).runOn(Schedule.occurs(1).after(1.second))
+          _     <- IO(100).runOn(Schedule.occurs(1).after(1.second) && Schedule.occurs(1))
           end   <- timer.clock.realTime(SECONDS)
         } yield (start, end)
 
         val (start, end) = endState
         end - start shouldEqual 1
       }
-    }
 
-    "run on a spaced schedule" should {
-      "start immediately and run with the specified fixed delay afterwards" in new RunTimesScope {
-        val schedule = Schedule.spaced(1.second)
+      "use the maximum of the delays for update" in new RunTimesScope {
+        val schedule = Schedule.occurs(2) && Schedule.spaced(1.second)
 
-        startedImmediately
         differencesBetweenRunTimes.forall(_ == 1) shouldBe true
       }
     }

@@ -1,6 +1,6 @@
 package com.emarsys.scheduler
 
-import cats.{Applicative, Bifunctor, Eq, Functor, Monad}
+import cats.{Applicative, Apply, Bifunctor, Eq, Functor, Monad}
 import cats.arrow.Profunctor
 import cats.effect.{Async, Timer}
 import cats.syntax.all._
@@ -128,6 +128,23 @@ trait PredefinedSchedules {
 
 trait Combinators {
   import Schedule.{Init, Decision}
+
+  type Combine[A] = (A, A) => A
+
+  def combine[F[+ _]: Apply, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A, C])(
+      cont: Combine[Boolean]
+  )(delay: Combine[FiniteDuration]): Schedule[F, A, (B, C)] =
+    Schedule[F, (S1.State, S2.State), A, (B, C)](
+      (S1.initial, S2.initial) mapN {
+        case (Init(d1, s1), Init(d2, s2)) => Init(delay(d1, d2), (s1, s2))
+      }, {
+        case (a, (s1, s2)) =>
+          (S1.update(a, s1), S2.update(a, s2)) mapN {
+            case (Decision(c1, d1, s1, b), Decision(c2, d2, s2, c)) =>
+              Decision(cont(c1, c2), delay(d1, d2), (s1, s2), (b, c))
+          }
+      }
+    )
 
   def mapInit[F[+ _]: Functor, A, B](S: Schedule[F, A, B])(
       f: Init[S.State] => Init[S.State]
