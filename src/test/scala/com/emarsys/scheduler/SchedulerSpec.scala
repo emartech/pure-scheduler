@@ -177,7 +177,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       }
     }
 
-    "combined with <*" should {
+    "combined with *>" should {
       "work as AND but keep only the right output" in new ScheduleScope {
         type Out = String
 
