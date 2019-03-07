@@ -210,4 +210,30 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       endState shouldEqual 2
     }
   }
+
+  "A schedule created with whileInput" should {
+    "go on as long as the value from the effect satisfies the predicate" in new ScheduleScope {
+      type Out = Int
+
+      val program = for {
+        ref        <- Ref.of[IO, Int](10)
+        occurences <- ref.modify(x => (x + 10, x)).runOn(Schedule.whileInput(_ < 100))
+      } yield occurences
+
+      endState shouldEqual 10
+    }
+  }
+
+  "A schedule created with untilInput" should {
+    "go on as long as the value from the effect does not satisfy the predicate" in new ScheduleScope {
+      type Out = Int
+
+      val program = for {
+        ref        <- Ref.of[IO, Int](10)
+        occurences <- ref.modify(x => (x + 10, x)).runOn(Schedule.untilInput(_ > 100))
+      } yield occurences
+
+      endState shouldEqual 11
+    }
+  }
 }

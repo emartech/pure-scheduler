@@ -98,6 +98,11 @@ trait ScheduleInstances {
       )
   }
 
+  implicit def relaxedProfunctorForSchedule[F[+ _]: Functor] = new Profunctor[Schedule[F, ?, ?]] {
+    def dimap[A, B, C, D](fab: Schedule[F, A, B])(f: C => A)(g: B => D): Schedule[F, C, D] =
+      profunctorForSchedule[F, fab.State].dimap(fab)(f)(g)
+  }
+
   implicit def functorForSchedule[F[+ _]: Functor, S, A] = new Functor[Schedule.Aux[F, S, A, ?]] {
     def map[B, C](fa: Schedule.Aux[F, S, A, B])(f: B => C) = profunctorForSchedule[F, S].rmap(fa)(f)
   }
@@ -140,6 +145,12 @@ trait PredefinedSchedules {
 
   def continueOn[F[+ _]: Applicative](b: Boolean): Schedule[F, Boolean, Int] =
     forever <* identity.reconsider(_.result == b)
+
+  def whileInput[F[+ _]: Applicative, A](p: A => Boolean): Schedule[F, A, Int] =
+    continueOn(true) lmap p
+
+  def untilInput[F[+ _]: Applicative, A](p: A => Boolean): Schedule[F, A, Int] =
+    continueOn(false) lmap p
 }
 
 trait Combinators {
