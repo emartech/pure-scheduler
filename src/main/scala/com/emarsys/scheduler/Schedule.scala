@@ -137,6 +137,9 @@ trait PredefinedSchedules {
 
   def spaced[F[+ _]: Applicative](interval: FiniteDuration): Schedule[F, Any, Int] =
     forever.space(interval)
+
+  def continueOn[F[+ _]: Applicative](b: Boolean): Schedule[F, Boolean, Int] =
+    forever <* identity.reconsider(_.result == b)
 }
 
 trait Combinators {

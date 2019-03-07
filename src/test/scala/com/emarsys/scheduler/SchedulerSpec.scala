@@ -197,4 +197,17 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       endState shouldEqual 100
     }
   }
+
+  "The continueOn schedule" should {
+    "go on as long as the effect returns the fixed boolean and return the occurences" in new ScheduleScope {
+      type Out = Int
+
+      val program = for {
+        ref        <- Ref.of[IO, Boolean](false)
+        occurences <- ref.modify(b => (!b, b)).runOn(Schedule.continueOn(false))
+      } yield occurences
+
+      endState shouldEqual 2
+    }
+  }
 }
