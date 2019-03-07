@@ -192,7 +192,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
     "output the value from the effect" in new ScheduleScope {
       type Out = Int
 
-      val program = IO(100).runOn(Schedule.identity <* Schedule.occurs(1))
+      val program = IO(100).runOn(Schedule.occurs(1) *> Schedule.identity)
 
       endState shouldEqual 100
     }
@@ -244,6 +244,29 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       val program = IO(1).runOn(Schedule.occurs(5).fold("")(_ + _.toString))
 
       endState shouldEqual "12345"
+    }
+  }
+
+  "The collect combinator" should {
+    "collect the outputs of a schedule" in new ScheduleScope {
+      type Out = List[Int]
+
+      val program = IO(1).runOn(Schedule.occurs(5).collect)
+
+      endState shouldEqual List(1, 2, 3, 4, 5)
+    }
+  }
+
+  "The collect schedule" should {
+    "collect the values returned by the effect" in new ScheduleScope {
+      type Out = List[Int]
+
+      val program = for {
+        ref <- Ref.of[IO, Int](10)
+        out <- ref.modify(x => (x + 10, x)).runOn(Schedule.occurs(3) *> Schedule.collect)
+      } yield out
+
+      endState shouldEqual List(10, 20, 30)
     }
   }
 }

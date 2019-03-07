@@ -151,6 +151,9 @@ trait PredefinedSchedules {
 
   def untilInput[F[+ _]: Applicative, A](p: A => Boolean): Schedule[F, A, Int] =
     continueOn(false) lmap p
+
+  def collect[F[+ _]: Applicative, A]: Schedule[F, A, List[A]] =
+    identity.collect
 }
 
 trait Combinators {
@@ -158,10 +161,10 @@ trait Combinators {
 
   type Combine[A] = (A, A) => A
 
-  def combine[F[+ _]: Apply, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A, C])(
+  def combine[F[+ _]: Apply, A, A1 <: A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A1, C])(
       cont: Combine[Boolean]
-  )(delay: Combine[FiniteDuration]): Schedule[F, A, (B, C)] =
-    Schedule[F, (S1.State, S2.State), A, (B, C)](
+  )(delay: Combine[FiniteDuration]): Schedule[F, A1, (B, C)] =
+    Schedule[F, (S1.State, S2.State), A1, (B, C)](
       (S1.initial, S2.initial) mapN {
         case (Init(d1, s1), Init(d2, s2)) => Init(delay(d1, d2), (s1, s2))
       }, {
