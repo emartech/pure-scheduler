@@ -236,4 +236,14 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       endState shouldEqual 11
     }
   }
+
+  "The fold combinator" should {
+    "be able to fold over the output of any schedule" in new ScheduleScope {
+      type Out = String
+
+      val program = IO(1).runOn(Schedule.occurs(5).fold("")(_ + _.toString))
+
+      endState shouldEqual "12345"
+    }
+  }
 }

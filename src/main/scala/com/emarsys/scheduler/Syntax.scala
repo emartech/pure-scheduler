@@ -25,4 +25,5 @@ final class ScheduleCombinators[F[+ _]: Apply, A, B](schedule: Schedule[F, A, B]
   def ||[C](that: Schedule[F, A, C])                        = Schedule.combine(schedule, that)(_ || _)(_ min _)
   def <*[C](that: Schedule[F, A, C])                        = &&(that) map (_._1)
   def *>[C](that: Schedule[F, A, C])                        = &&(that) map (_._2)
+  def fold[Z](z: Z)(c: (Z, B) => Z)                         = Schedule.fold(schedule)(z)(c)
 }

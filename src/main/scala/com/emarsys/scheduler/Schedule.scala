@@ -203,4 +203,16 @@ trait Combinators {
 
   def reconsider[F[+ _]: Functor, A, B](S: Schedule[F, A, B])(f: Decision[S.State, B] => Boolean): Schedule[F, A, B] =
     mapDecision(S)(d => d.copy(continue = f(d)))
+
+  def fold[F[+ _]: Functor, A, B, Z](S: Schedule[F, A, B])(z: Z)(c: (Z, B) => Z): Schedule[F, A, Z] =
+    Schedule[F, (Z, S.State), A, Z](
+      S.initial.map(i => Init(i.delay, (z, i.state))), {
+        case (a, (z, s)) =>
+          S.update(a, s) map {
+            case Decision(cont, delay, state, b) =>
+              val z2 = c(z, b)
+              Decision(cont, delay, (z2, state), z2)
+          }
+      }
+    )
 }
