@@ -26,6 +26,8 @@ final class ScheduleCombinators[F[+ _]: Monad, A, B](schedule: Schedule[F, A, B]
   def <*[A1 <: A, C](that: Schedule[F, A1, C])              = &&(that) map (_._1)
   def *>[A1 <: A, C](that: Schedule[F, A1, C])              = &&(that) map (_._2)
   def andAfterThat(second: Schedule[F, A, B])               = Schedule.chain(schedule, second)
+  def >>>[C](that: Schedule[F, B, C])                       = Schedule.compose(schedule, that)
+  def <<<[A0](that: Schedule[F, A0, A])                     = Schedule.compose(that, schedule)
   def fold[Z](z: Z)(c: (Z, B) => Z)                         = Schedule.fold(schedule)(z)(c)
   def collect                                               = fold[List[B]](Nil)((bs, b) => b :: bs) map (_.reverse)
 }

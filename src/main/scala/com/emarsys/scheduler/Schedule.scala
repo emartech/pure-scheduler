@@ -15,9 +15,16 @@ trait Schedule[F[+ _], -A, +B] {
 
 object Schedule extends Scheduler with ScheduleInstances with PredefinedSchedules with Combinators {
   type Aux[F[+ _], S, A, B] = Schedule[F, A, B] { type State = S }
+  type Combine[A]           = (A, A) => A
 
-  final case class Init[S](delay: FiniteDuration, state: S)
-  final case class Decision[S, +B](continue: Boolean, delay: FiniteDuration, state: S, result: B)
+  final case class Init[S](delay: FiniteDuration, state: S) {
+    def combineWith[S2](that: Init[S2])(combD: Combine[FiniteDuration]) =
+      Init(combD(delay, that.delay), (state, that.state))
+  }
+  final case class Decision[S, +B](continue: Boolean, delay: FiniteDuration, state: S, result: B) {
+    def combineWith[S2, B2](that: Decision[S2, B2])(cont: Combine[Boolean])(combD: Combine[FiniteDuration]) =
+      Decision(cont(continue, that.continue), combD(delay, that.delay), (state, that.state), (result, that.result))
+  }
 
   def apply[F[+ _], S, A, B](
       initial0: F[Init[S]],
@@ -157,21 +164,18 @@ trait PredefinedSchedules {
 }
 
 trait Combinators {
-  import Schedule.{Init, Decision}
-
-  type Combine[A] = (A, A) => A
+  import Schedule.{Init, Decision, Combine}
 
   def combine[F[+ _]: Apply, A, A1 <: A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A1, C])(
       cont: Combine[Boolean]
   )(delay: Combine[FiniteDuration]): Schedule[F, A1, (B, C)] =
     Schedule[F, (S1.State, S2.State), A1, (B, C)](
       (S1.initial, S2.initial) mapN {
-        case (Init(d1, s1), Init(d2, s2)) => Init(delay(d1, d2), (s1, s2))
+        case (i1, i2) => i1.combineWith(i2)(delay)
       }, {
         case (a, (s1, s2)) =>
           (S1.update(a, s1), S2.update(a, s2)) mapN {
-            case (Decision(c1, d1, s1, b), Decision(c2, d2, s2, c)) =>
-              Decision(cont(c1, c2), delay(d1, d2), (s1, s2), (b, c))
+            case (d1, d2) => d1.combineWith(d2)(cont)(delay)
           }
       }
     )
@@ -237,4 +241,18 @@ trait Combinators {
       def first(a: A, s1: S1.State): F[Decision[State, B]]  = S1.update(a, s1).map(_.leftMap(Left(_)))
       def second(a: A, s2: S2.State): F[Decision[State, B]] = S2.update(a, s2).map(_.leftMap(Right(_)))
     }
+
+  def compose[F[+ _]: Monad, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, B, C]): Schedule[F, A, C] =
+    Schedule[F, (S1.State, S2.State), A, C](
+      for {
+        i1 <- S1.initial
+        i2 <- S2.initial
+      } yield i1.combineWith(i2)(_ + _), {
+        case (a, (s1, s2)) =>
+          for {
+            d1 <- S1.update(a, s1)
+            d2 <- S2.update(d1.result, s2)
+          } yield d1.combineWith(d2)(_ && _)(_ + _).bimap(identity, _._2)
+      }
+    )
 }

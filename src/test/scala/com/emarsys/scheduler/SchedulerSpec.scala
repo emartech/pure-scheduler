@@ -196,6 +196,26 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
         endState shouldEqual List(1, 2, 1, 2, 3)
       }
     }
+
+    "combined with >>>" should {
+      "feed the output of the first to the input of the second" in new ScheduleScope {
+        type Out = Int
+
+        val program = IO("").runOn(Schedule.forever >>> Schedule.whileInput(_ < 5))
+
+        endState shouldEqual 5
+      }
+    }
+
+    "combined with <<<" should {
+      "feed the output of the second to the input of the first" in new ScheduleScope {
+        type Out = Int
+
+        val program = IO("").runOn(Schedule.whileInput[IO, Int](_ < 5) <<< Schedule.forever)
+
+        endState shouldEqual 5
+      }
+    }
   }
 
   "The identity schedule" should {
