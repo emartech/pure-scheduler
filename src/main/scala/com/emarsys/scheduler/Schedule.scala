@@ -134,25 +134,25 @@ trait PredefinedSchedules {
     (a, _) => Decision(continue = true, 0.millis, (), a).pure[F]
   )
 
-  def occurs[F[+ _]: Applicative](times: Int): Schedule[F, Any, Int] =
+  def occurs[F[+ _]: Monad](times: Int): Schedule[F, Any, Int] =
     forever.reconsider(_.result < times)
 
-  def after[F[+ _]: Applicative](delay: FiniteDuration): Schedule[F, Any, Int] =
+  def after[F[+ _]: Monad](delay: FiniteDuration): Schedule[F, Any, Int] =
     forever.after(delay)
 
-  def spaced[F[+ _]: Applicative](interval: FiniteDuration): Schedule[F, Any, Int] =
+  def spaced[F[+ _]: Monad](interval: FiniteDuration): Schedule[F, Any, Int] =
     forever.space(interval)
 
-  def continueOn[F[+ _]: Applicative](b: Boolean): Schedule[F, Boolean, Int] =
+  def continueOn[F[+ _]: Monad](b: Boolean): Schedule[F, Boolean, Int] =
     forever <* identity.reconsider(_.result == b)
 
-  def whileInput[F[+ _]: Applicative, A](p: A => Boolean): Schedule[F, A, Int] =
+  def whileInput[F[+ _]: Monad, A](p: A => Boolean): Schedule[F, A, Int] =
     continueOn(true) lmap p
 
-  def untilInput[F[+ _]: Applicative, A](p: A => Boolean): Schedule[F, A, Int] =
+  def untilInput[F[+ _]: Monad, A](p: A => Boolean): Schedule[F, A, Int] =
     continueOn(false) lmap p
 
-  def collect[F[+ _]: Applicative, A]: Schedule[F, A, List[A]] =
+  def collect[F[+ _]: Monad, A]: Schedule[F, A, List[A]] =
     identity.collect
 }
 
@@ -218,4 +218,23 @@ trait Combinators {
           }
       }
     )
+
+  def chain[F[+ _]: Monad, A, B](S1: Schedule[F, A, B], S2: Schedule[F, A, B]): Schedule[F, A, B] =
+    new Schedule[F, A, B] {
+      type State = Either[S1.State, S2.State]
+
+      val initial = S1.initial.map(_.map(Left(_)))
+
+      val update = {
+        case (a, Left(s1)) =>
+          first(a, s1) flatMap { d =>
+            if (d.continue) d.pure[F]
+            else S2.initial.map(i => Decision(continue = true, i.delay, Right(i.state), d.result))
+          }
+        case (a, Right(s2)) => second(a, s2)
+      }
+
+      def first(a: A, s1: S1.State): F[Decision[State, B]]  = S1.update(a, s1).map(_.leftMap(Left(_)))
+      def second(a: A, s2: S2.State): F[Decision[State, B]] = S2.update(a, s2).map(_.leftMap(Right(_)))
+    }
 }

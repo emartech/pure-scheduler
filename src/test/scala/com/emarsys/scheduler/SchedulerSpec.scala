@@ -1,6 +1,6 @@
 package com.emarsys.scheduler
 
-import cats.Applicative
+import cats.Monad
 import cats.effect.IO
 import cats.effect.concurrent.Ref
 import cats.effect.laws.util.TestContext
@@ -21,7 +21,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
     type Out
     val timeBox = 5 seconds
     val program: IO[Out]
-    implicit val A = implicitly[Applicative[IO]]
+    implicit val M = implicitly[Monad[IO]]
 
     lazy val runProgram = {
       val f = program.unsafeToFuture
@@ -184,6 +184,16 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
         val program = IO(100).runOn(Schedule.forever *> Schedule.occurs(1).map(_.toString))
 
         endState shouldEqual "1"
+      }
+    }
+
+    "combined with andAfterThat" should {
+      "go through the first one, then the other" in new ScheduleScope {
+        type Out = List[Int]
+
+        val program = IO(100).runOn((Schedule.occurs(2) andAfterThat Schedule.occurs(3)).collect)
+
+        endState shouldEqual List(1, 2, 1, 2, 3)
       }
     }
   }
