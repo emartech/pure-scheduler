@@ -165,8 +165,11 @@ trait PredefinedSchedules {
   def fibonacci[F[+ _]: Applicative](one: FiniteDuration): Schedule[F, Any, FiniteDuration] =
     Schedule.delayFromOut(unfold((0.millis, one))({ case (p, c) => (c, p + c) }).map(_._2))
 
-  def linear[F[+ _]: Applicative](base: FiniteDuration): Schedule[F, Any, FiniteDuration] =
-    Schedule.delayFromOut(forever.map(_ * base))
+  def linear[F[+ _]: Applicative](one: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+    Schedule.delayFromOut(forever.map(_ * one))
+
+  def exponential[F[+ _]: Applicative](one: FiniteDuration, base: Double = 2.0): Schedule[F, Any, FiniteDuration] =
+    Schedule.delayFromOut(forever.map(exponent => one * math.pow(base, exponent.doubleValue).longValue))
 }
 
 trait Combinators {

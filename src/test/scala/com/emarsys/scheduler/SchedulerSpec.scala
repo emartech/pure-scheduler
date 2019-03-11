@@ -130,7 +130,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
   "A linear schedule" should {
     "increase delays linearly" in new RunTimesScope {
       override val timeBox = 15.seconds
-      val schedule         = Schedule.linear(base = 1.second) <* Schedule.occurs(5)
+      val schedule         = Schedule.linear(one = 1.second) <* Schedule.occurs(5)
 
       startedImmediately
       differencesBetweenRunTimes shouldEqual List(1, 2, 3, 4).reverse
@@ -140,9 +140,28 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       type Out = FiniteDuration
       override val timeBox = 15.seconds
 
-      val program = IO(1).runOn(Schedule.linear(base = 1.second) <* Schedule.occurs(5))
+      val program = IO(1).runOn(Schedule.linear(one = 1.second) <* Schedule.occurs(5))
 
       endState shouldEqual 5.seconds
+    }
+  }
+
+  "An exponential schedule" should {
+    "increase the delay exponentially" in new RunTimesScope {
+      override val timeBox = 35.seconds
+      val schedule         = Schedule.exponential(one = 1.second, base = 2.0) <* Schedule.occurs(5)
+
+      startedImmediately
+      differencesBetweenRunTimes shouldEqual List(2, 4, 8, 16).reverse
+    }
+
+    "output the current delay" in new ScheduleScope {
+      type Out = FiniteDuration
+      override val timeBox = 35.seconds
+
+      val program = IO(1).runOn(Schedule.exponential(one = 1.second, base = 2.0) <* Schedule.occurs(5))
+
+      endState shouldEqual 32.seconds
     }
   }
 
