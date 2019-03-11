@@ -161,6 +161,9 @@ trait PredefinedSchedules {
 
   def collect[F[+ _]: Monad, A]: Schedule[F, A, List[A]] =
     identity.collect
+
+  def fibonacci[F[+ _]: Applicative](one: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+    Schedule.delayFromOut(unfold((0.millis, one))({ case (p, c) => (c, p + c) }).map(_._2))
 }
 
 trait Combinators {
@@ -195,6 +198,9 @@ trait Combinators {
       S.initial,
       S.update(_, _).map(f)
     )
+
+  def delayFromOut[F[+ _]: Functor, A](S: Schedule[F, A, FiniteDuration]) =
+    mapDecision(S)(d => d.copy(delay = d.result))
 
   def after[F[+ _]: Functor, A, B](
       S: Schedule[F, A, B],

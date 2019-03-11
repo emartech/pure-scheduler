@@ -98,13 +98,32 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       }
     }
 
-    "defined via the `space`-ing an existing schedule" should {
+    "defined via `space`-ing an existing schedule" should {
       "start immediately and run with the specified fixed delay afterwards" in new RunTimesScope {
         val schedule = Schedule.occurs(2).space(1.second)
 
         startedImmediately
         differencesBetweenRunTimes.forall(_ == 1) shouldBe true
       }
+    }
+  }
+
+  "A fibonacci schedule" should {
+    "increase delays according to the fibonacci sequence" in new RunTimesScope {
+      override val timeBox = 15.seconds
+      val schedule         = Schedule.fibonacci(one = 1.second) <* Schedule.occurs(5)
+
+      startedImmediately
+      differencesBetweenRunTimes shouldEqual List(1, 2, 3, 5).reverse
+    }
+
+    "output the current delay" in new ScheduleScope {
+      type Out = FiniteDuration
+      override val timeBox = 15.seconds
+
+      val program = IO(1).runOn(Schedule.fibonacci(one = 1.second) <* Schedule.occurs(5))
+
+      endState shouldEqual 8.seconds
     }
   }
 

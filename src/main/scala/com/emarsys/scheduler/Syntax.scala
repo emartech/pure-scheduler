@@ -15,7 +15,7 @@ final class ScheduleOps[F[+ _]: Monad: Timer, A](fa: F[A]) {
   def runOn[B](schedule: Schedule[F, A, B]) = Schedule.run(fa, schedule)
 }
 
-final class ScheduleCombinators[F[+ _]: Monad, A, B](schedule: Schedule[F, A, B]) {
+final class ScheduleCombinators[F[+ _]: Monad, A, B](val schedule: Schedule[F, A, B]) {
   import cats.syntax.functor._
 
   def after(delay: FiniteDuration)                          = Schedule.after(schedule, delay)
