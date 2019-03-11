@@ -127,6 +127,25 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
     }
   }
 
+  "A linear schedule" should {
+    "increase delays linearly" in new RunTimesScope {
+      override val timeBox = 15.seconds
+      val schedule         = Schedule.linear(base = 1.second) <* Schedule.occurs(5)
+
+      startedImmediately
+      differencesBetweenRunTimes shouldEqual List(1, 2, 3, 4).reverse
+    }
+
+    "output the current delay" in new ScheduleScope {
+      type Out = FiniteDuration
+      override val timeBox = 15.seconds
+
+      val program = IO(1).runOn(Schedule.linear(base = 1.second) <* Schedule.occurs(5))
+
+      endState shouldEqual 5.seconds
+    }
+  }
+
   "A combination of two schedules" when {
     "combined with AND" should {
       "continue when both of the schedules continue" in new ScheduleScope {
