@@ -165,11 +165,11 @@ trait PredefinedSchedules {
   def fibonacci[F[+ _]: Applicative](one: FiniteDuration): Schedule[F, Any, FiniteDuration] =
     Schedule.delayFromOut(unfold((0.millis, one))({ case (p, c) => (c, p + c) }).map(_._2))
 
-  def linear[F[+ _]: Applicative](one: FiniteDuration): Schedule[F, Any, FiniteDuration] =
-    Schedule.delayFromOut(forever.map(_ * one))
+  def linear[F[+ _]: Applicative](unit: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+    Schedule.delayFromOut(forever.map(_ * unit))
 
-  def exponential[F[+ _]: Applicative](one: FiniteDuration, base: Double = 2.0): Schedule[F, Any, FiniteDuration] =
-    Schedule.delayFromOut(forever.map(exponent => one * math.pow(base, exponent.doubleValue).longValue))
+  def exponential[F[+ _]: Applicative](unit: FiniteDuration, base: Double = 2.0): Schedule[F, Any, FiniteDuration] =
+    Schedule.delayFromOut(forever.map(exponent => unit * math.pow(base, exponent.doubleValue).longValue))
 }
 
 trait Combinators {
@@ -235,13 +235,15 @@ trait Combinators {
       }
     )
 
-  def chain[F[+ _]: Monad, A, B](S1: Schedule[F, A, B], S2: Schedule[F, A, B]): Schedule[F, A, B] =
-    new Schedule[F, A, B] {
-      type State = Either[S1.State, S2.State]
+  def chain[F[+ _]: Monad, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A, C]) = {
+    def first(a: A, s1: S1.State): F[Decision[Either[S1.State, S2.State], Either[B, C]]] =
+      S1.update(a, s1).map(_.bimap(Left(_), Left(_)))
 
-      val initial = S1.initial.map(_.map(Left(_)))
+    def second(a: A, s2: S2.State): F[Decision[Either[S1.State, S2.State], Either[B, C]]] =
+      S2.update(a, s2).map(_.bimap(Right(_), Right(_)))
 
-      val update = {
+    Schedule[F, Either[S1.State, S2.State], A, Either[B, C]](
+      S1.initial.map(_.map(Left(_))), {
         case (a, Left(s1)) =>
           first(a, s1) flatMap { d =>
             if (d.continue) d.pure[F]
@@ -249,10 +251,8 @@ trait Combinators {
           }
         case (a, Right(s2)) => second(a, s2)
       }
-
-      def first(a: A, s1: S1.State): F[Decision[State, B]]  = S1.update(a, s1).map(_.leftMap(Left(_)))
-      def second(a: A, s2: S2.State): F[Decision[State, B]] = S2.update(a, s2).map(_.leftMap(Right(_)))
-    }
+    )
+  }
 
   def compose[F[+ _]: Monad, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, B, C]): Schedule[F, A, C] =
     Schedule[F, (S1.State, S2.State), A, C](

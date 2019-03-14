@@ -130,7 +130,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
   "A linear schedule" should {
     "increase delays linearly" in new RunTimesScope {
       override val timeBox = 15.seconds
-      val schedule         = Schedule.linear(one = 1.second) <* Schedule.occurs(5)
+      val schedule         = Schedule.linear(unit = 1.second) <* Schedule.occurs(5)
 
       startedImmediately
       differencesBetweenRunTimes shouldEqual List(1, 2, 3, 4).reverse
@@ -140,7 +140,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       type Out = FiniteDuration
       override val timeBox = 15.seconds
 
-      val program = IO(1).runOn(Schedule.linear(one = 1.second) <* Schedule.occurs(5))
+      val program = IO(1).runOn(Schedule.linear(unit = 1.second) <* Schedule.occurs(5))
 
       endState shouldEqual 5.seconds
     }
@@ -149,7 +149,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
   "An exponential schedule" should {
     "increase the delay exponentially" in new RunTimesScope {
       override val timeBox = 35.seconds
-      val schedule         = Schedule.exponential(one = 1.second, base = 2.0) <* Schedule.occurs(5)
+      val schedule         = Schedule.exponential(unit = 1.second, base = 2.0) <* Schedule.occurs(5)
 
       startedImmediately
       differencesBetweenRunTimes shouldEqual List(2, 4, 8, 16).reverse
@@ -159,7 +159,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       type Out = FiniteDuration
       override val timeBox = 35.seconds
 
-      val program = IO(1).runOn(Schedule.exponential(one = 1.second, base = 2.0) <* Schedule.occurs(5))
+      val program = IO(1).runOn(Schedule.exponential(unit = 1.second, base = 2.0) <* Schedule.occurs(5))
 
       endState shouldEqual 32.seconds
     }
@@ -246,11 +246,11 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
 
     "combined with andAfterThat" should {
       "go through the first one, then the other" in new ScheduleScope {
-        type Out = List[Int]
+        type Out = List[Either[Int, Int]]
 
         val program = IO(100).runOn((Schedule.occurs(2) andAfterThat Schedule.occurs(3)).collect)
 
-        endState shouldEqual List(1, 2, 1, 2, 3)
+        endState shouldEqual List(Left(1), Left(2), Right(1), Right(2), Right(3))
       }
     }
 
