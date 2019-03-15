@@ -235,7 +235,7 @@ trait Combinators {
       }
     )
 
-  def chain[F[+ _]: Monad, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A, C]) = {
+  def sequence[F[+ _]: Monad, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A, C]) = {
     def first(a: A, s1: S1.State): F[Decision[Either[S1.State, S2.State], Either[B, C]]] =
       S1.update(a, s1).map(_.bimap(Left(_), Left(_)))
 
