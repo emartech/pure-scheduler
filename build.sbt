@@ -49,13 +49,6 @@ inThisBuild(
     developers := List(
       Developer("doczir", "Robert Doczi", "doczi.r@gmail.com", url("https://github.com/doczir")),
       Developer("miklos-martin", "Miklos Martin", "miklos.martin@gmail.com", url("https://github.com/miklos-martin"))
-    ),
-    scmInfo := Some(
-      ScmInfo(url("https://github.com/emartech/pure-scheduler"), "scm:git:git@github.com:emartech/pure-scheduler.git")
-    ),
-    // These are the sbt-release-early settings to configure
-    pgpPublicRing := file("./ci/local.pubring.asc"),
-    pgpSecretRing := file("./ci/local.secring.asc"),
-    releaseEarlyWith := SonatypePublisher
+    )
   )
 )
