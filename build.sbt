@@ -1,5 +1,5 @@
 organization := "com.emarsys"
-name := "pure-scheduler"
+name := "scheduler"
 scalaVersion := "2.12.8"
 
 scalacOptions ++= Seq(
