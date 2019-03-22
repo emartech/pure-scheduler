@@ -30,4 +30,5 @@ final class ScheduleCombinators[F[+ _]: Monad, A, B](val schedule: Schedule[F, A
   def <<<[A0](that: Schedule[F, A0, A])                     = Schedule.compose(that, schedule)
   def fold[Z](z: Z)(c: (Z, B) => Z)                         = Schedule.fold(schedule)(z)(c)
   def collect                                               = fold[List[B]](Nil)((bs, b) => b :: bs) map (_.reverse)
+  def onDecision(f: Decision[schedule.State, B] => F[Unit]) = Schedule.onDecision(schedule)(f)
 }

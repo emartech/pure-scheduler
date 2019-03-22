@@ -4,12 +4,12 @@ import cats.Monad
 import cats.effect.IO
 import cats.effect.concurrent.Ref
 import cats.effect.laws.util.TestContext
-import org.scalatest.{Assertions, Matchers, WordSpec}
+import org.scalatest.{Matchers, WordSpec}
 
 import scala.concurrent.duration._
 import scala.util._
 
-class SchedulerSpec extends WordSpec with Assertions with Matchers {
+class SchedulerSpec extends WordSpec with Matchers {
   import syntax._
   import cats.syntax.functor._
 
@@ -30,7 +30,7 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
     }
 
     lazy val endState = runProgram.value match {
-      case None                 => fail(s"Scheduled program have not completed in $timeBox")
+      case None                 => fail(s"Scheduled program has not completed in $timeBox")
       case Some(Failure(e))     => fail(e.toString, e)
       case Some(Success(state)) => state
     }
@@ -354,6 +354,20 @@ class SchedulerSpec extends WordSpec with Assertions with Matchers {
       } yield out
 
       endState shouldEqual List(10, 20, 30)
+    }
+  }
+
+  "Using #onDecision" should {
+    "allow the user to attach a side-effect to every decision" in new ScheduleScope {
+      type Out = List[Int]
+
+      val program = for {
+        ref       <- Ref.of[IO, List[Int]](Nil)
+        _         <- IO(100).runOn(Schedule.occurs(3).onDecision(d => ref.modify(xs => (d.result :: xs, ()))))
+        decisions <- ref.get
+      } yield decisions.reverse
+
+      endState shouldEqual List(1, 2, 3)
     }
   }
 }

@@ -267,4 +267,15 @@ trait Combinators {
           } yield d1.combineWith(d2)(_ && _)(_ + _).bimap(identity, _._2)
       }
     )
+
+  def onDecision[F[+ _]: Monad, A, B](S: Schedule[F, A, B])(
+      f: Decision[S.State, B] => F[Unit]
+  ): Schedule[F, A, B] =
+    Schedule[F, S.State, A, B](
+      S.initial,
+      (a, s) => for {
+        d <- S.update(a, s)
+        _ <- f(d)
+      } yield d
+    )
 }
