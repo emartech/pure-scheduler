@@ -124,8 +124,8 @@ trait PredefinedSchedules {
   import syntax._
 
   def unfold[F[+ _]: Applicative, B](zero: => B)(f: B => B): Schedule[F, Any, B] = Schedule[F, B, Any, B](
-    Init(0.millis, zero).pure[F],
-    (_, b) => Decision(continue = true, 0.millis, f(b), f(b)).pure[F]
+    Init(Duration.Zero, zero).pure[F],
+    (_, b) => Decision(continue = true, Duration.Zero, f(b), f(b)).pure[F]
   )
 
   def forever[F[+ _]: Applicative]: Schedule[F, Any, Int] =
@@ -137,8 +137,8 @@ trait PredefinedSchedules {
   )
 
   def identity[F[+ _]: Applicative, A]: Schedule[F, A, A] = Schedule[F, Unit, A, A](
-    Init(0.millis, ()).pure[F],
-    (a, _) => Decision(continue = true, 0.millis, (), a).pure[F]
+    Init(Duration.Zero, ()).pure[F],
+    (a, _) => Decision(continue = true, Duration.Zero, (), a).pure[F]
   )
 
   def occurs[F[+ _]: Monad](times: Int): Schedule[F, Any, Int] =
@@ -163,7 +163,7 @@ trait PredefinedSchedules {
     identity.collect
 
   def fibonacci[F[+ _]: Applicative](one: FiniteDuration): Schedule[F, Any, FiniteDuration] =
-    Schedule.delayFromOut(unfold((0.millis, one))({ case (p, c) => (c, p + c) }).map(_._2))
+    Schedule.delayFromOut(unfold((Duration.Zero, one))({ case (p, c) => (c, p + c) }).map(_._2))
 
   def linear[F[+ _]: Applicative](unit: FiniteDuration): Schedule[F, Any, FiniteDuration] =
     Schedule.delayFromOut(forever.map(_ * unit))
@@ -273,9 +273,10 @@ trait Combinators {
   ): Schedule[F, A, B] =
     Schedule[F, S.State, A, B](
       S.initial,
-      (a, s) => for {
-        d <- S.update(a, s)
-        _ <- f(d)
-      } yield d
+      (a, s) =>
+        for {
+          d <- S.update(a, s)
+          _ <- f(d)
+        } yield d
     )
 }
