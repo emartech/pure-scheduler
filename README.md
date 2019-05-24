@@ -44,11 +44,11 @@ val schedule: Schedule[F, A, B]
 val scheduled: F[B] = effect runOn schedule
 ```
 
-### Retrying effects - not yet implemented
+### Retrying effects
 
-A schedule of type `Schedule[F, E, B]` can be used to retry effects of type `F[A]` that can fail with an error of type `E`. A function for repeating effects are provided as an extension method for suitable `F`-s (having a `cats.Moderror[?[_], E]` instance for them).
+A schedule of type `Schedule[F, E, B]` can be used to retry effects of type `F[A]` that can fail with an error of type `E`. A function for repeating effects are provided as an extension method for suitable `F`-s (having a `cats.Moderror[?[_], E]` and a `cats.effect.Timer` instance for them).
 
-> Note, that this `E` in practice will most likely be `Throwable`, given that the majority of proper effect types out there can only fail with `Throwable`-s. Except for ZIO, but users of ZIO are probably better off with using ZIO Schedules anyway.
+> Note, that this `E` in practice will most likely be `Throwable`, given that the majority of proper effect types out there can only fail with `Throwable`-s. Except for ZIO, but users of ZIO are probably better off with using ZIO Schedules anyway. Another possibility, when this E may not be a `Throwable` is when one uses `EitherT` for example.
 
 ```scala
 import com.emarsys.scheduler.Schedule
@@ -194,8 +194,6 @@ Produce a schedule that starts with an exponential spacing from 10 millis and af
   andAfterThat (Schedule.spaced(60 seconds) && Schedule.occurs(100)))
   *> Schedule.collect
 ```
-
-
 
 
 [ZIO Schedule]: https://scalaz.github.io/scalaz-zio/datatypes/schedule.html

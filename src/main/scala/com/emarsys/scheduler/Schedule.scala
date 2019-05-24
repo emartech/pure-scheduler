@@ -1,6 +1,6 @@
 package com.emarsys.scheduler
 
-import cats.{Applicative, Apply, Bifunctor, Eq, Functor, Monad}
+import cats.{Applicative, Apply, Bifunctor, Eq, Functor, Monad, MonadError}
 import cats.arrow.Profunctor
 import cats.effect.{Async, Timer}
 import cats.syntax.all._
@@ -39,11 +39,11 @@ object Schedule extends Scheduler with ScheduleInstances with PredefinedSchedule
 trait Scheduler {
   import Schedule.Decision
 
-  def run[F[+ _]: Monad, A, B](F: F[A], schedule: Schedule[F, A, B])(implicit timer: Timer[F]): F[B] = {
+  def run[F[+ _]: Monad: Timer, A, B](F: F[A], schedule: Schedule[F, A, B]): F[B] = {
     def loop(decision: Decision[schedule.State, B]): F[B] =
       if (decision.continue)
         for {
-          _ <- timer.sleep(decision.delay)
+          _ <- Timer[F].sleep(decision.delay)
           a <- F
           d <- schedule.update(a, decision.state)
           b <- loop(d)
@@ -54,12 +54,33 @@ trait Scheduler {
       .flatMap(
         initial =>
           for {
-            _ <- timer.sleep(initial.delay)
+            _ <- Timer[F].sleep(initial.delay)
             a <- F
             d <- schedule.update(a, initial.state)
           } yield d
       )
       .flatMap(loop)
+  }
+
+  def retry[E, F[+ _]: MonadError[?[_], E]: Timer, A, B](F: F[A], policy: Schedule[F, E, B]): F[A] = {
+    def loop(decision: Decision[policy.State, B]): PartialFunction[E, F[A]] = {
+      case e if decision.continue =>
+        for {
+          _    <- Timer[F].sleep(decision.delay)
+          next <- policy.update(e, decision.state)
+          a    <- F.recoverWith(loop(next))
+        } yield a
+    }
+
+    F recoverWith {
+      case e =>
+        for {
+          initial <- policy.initial
+          _       <- Timer[F].sleep(initial.delay)
+          d       <- policy.update(e, initial.state)
+          a       <- F.recoverWith(loop(d))
+        } yield a
+    }
   }
 }
 

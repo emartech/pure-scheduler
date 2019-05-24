@@ -1,9 +1,7 @@
 package com.emarsys.scheduler
 
-import cats.Monad
 import cats.effect.IO
 import cats.effect.concurrent.Ref
-import cats.effect.laws.util.TestContext
 import org.scalatest.{Matchers, WordSpec}
 
 import scala.concurrent.duration._
@@ -13,15 +11,10 @@ class SchedulerSpec extends WordSpec with Matchers {
   import syntax._
   import cats.syntax.functor._
 
-  val ctx                   = TestContext()
-  implicit val contextShift = IO.contextShift(ctx)
-  implicit val timer        = ctx.timer[IO]
-
-  trait ScheduleScope {
+  trait ScheduleScope extends IOScope {
     type Out
     val timeBox = 5 seconds
     val program: IO[Out]
-    implicit val M = implicitly[Monad[IO]]
 
     lazy val runProgram = {
       val f = program.unsafeToFuture
@@ -362,10 +355,10 @@ class SchedulerSpec extends WordSpec with Matchers {
       type Out = List[Int]
 
       val program = for {
-        ref       <- Ref.of[IO, List[Int]](Nil)
-        _         <- IO(100).runOn(Schedule.occurs(3).onDecision(d => ref.modify(xs => (d.result :: xs, ()))))
-        decisions <- ref.get
-      } yield decisions.reverse
+        ref     <- Ref.of[IO, List[Int]](Nil)
+        _       <- IO(100).runOn(Schedule.occurs(3).onDecision(d => ref.modify(xs => (d.result :: xs, ()))))
+        results <- ref.get
+      } yield results.reverse
 
       endState shouldEqual List(1, 2, 3)
     }
