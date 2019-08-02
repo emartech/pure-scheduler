@@ -128,6 +128,12 @@ Exponentially increasing delays
 Schedule.exponential(unit: FiniteDuration, base: Double = 2.0): Schedule[F, Any, FiniteDuration]
 ```
 
+Time capped schedule
+```scala
+Schedule.maxFor(timeCap: FiniteDuration): Schedule[F, Any, FiniteDuration]
+```
+This will not cancel the effect, just won't continue after the specified time has passed.
+
 
 ## Combinators
 

@@ -48,7 +48,8 @@ inThisBuild(
     homepage := Some(url("https://github.com/emartech/pure-scheduler")),
     developers := List(
       Developer("doczir", "Robert Doczi", "doczi.r@gmail.com", url("https://github.com/doczir")),
-      Developer("miklos-martin", "Miklos Martin", "miklos.martin@gmail.com", url("https://github.com/miklos-martin"))
+      Developer("miklos-martin", "Miklos Martin", "miklos.martin@gmail.com", url("https://github.com/miklos-martin")),
+      Developer("suliatis", "Attila Suli", "suli.zakar.attila@gmail.com", url("https://github.com/suliatis"))
     )
   )
 )

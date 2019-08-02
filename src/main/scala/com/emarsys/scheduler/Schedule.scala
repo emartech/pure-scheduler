@@ -191,6 +191,16 @@ trait PredefinedSchedules {
 
   def exponential[F[+ _]: Applicative](unit: FiniteDuration, base: Double = 2.0): Schedule[F, Any, FiniteDuration] =
     Schedule.delayFromOut(forever.map(exponent => unit * math.pow(base, exponent.doubleValue).longValue))
+
+  def maxFor[F[+ _]: Functor: Timer](timeCap: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+    Schedule[F, Long, Any, FiniteDuration](
+      Timer[F].clock.realTime(MILLISECONDS).map(now => Init(Duration.Zero, now)),
+      (_, startTime) =>
+        Timer[F].clock.realTime(MILLISECONDS).map { now =>
+          val elapsed = (now - startTime).millis
+          Decision(elapsed < timeCap, Duration.Zero, startTime, elapsed)
+        }
+    )
 }
 
 trait Combinators {

@@ -158,6 +158,16 @@ class SchedulerSpec extends WordSpec with Matchers {
     }
   }
 
+  "A time capped schedule" should {
+    "continue without delay until the specified time cap is reached, outputting the total time that has passed" in new ScheduleScope {
+      type Out = FiniteDuration
+
+      val program = timer.sleep(2.seconds).runOn(Schedule.maxFor(3.seconds))
+
+      endState shouldEqual 4.seconds
+    }
+  }
+
   "A combination of two schedules" when {
     "combined with AND" should {
       "continue when both of the schedules continue" in new ScheduleScope {
