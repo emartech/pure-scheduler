@@ -93,9 +93,14 @@ Fixed number of occurences
 Schedule.occurs(times: Int): Schedule[F, Any, Int]
 ```
 
-Fixed spacing between occurences (not considering the time the effect takes to produce an output)
+Fixed spacing between occurences, not considering the time the effect takes to produce an output
 ```scala
 Schedule.spaced(delay: FiniteDuration): Schedule[F, Any, Int]
+```
+
+Fixed spacing between occurences, considering the time the effect takes to produce an output
+```scala
+Schedule.fixed(delay: FiniteDuration): Schedule[F, Any, FiniteDuration]
 ```
 
 The identity schedule returns the latest output of the effect.

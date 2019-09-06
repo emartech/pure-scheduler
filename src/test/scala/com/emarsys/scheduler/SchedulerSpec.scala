@@ -34,10 +34,13 @@ class SchedulerSpec extends WordSpec with Matchers {
 
     def schedule: Schedule[IO, Any, Any]
 
+    val io = IO.unit
+
     val collectRunTimes: Ref[IO, List[Long]] => IO[Unit] = { ref =>
       for {
         current <- timer.clock.realTime(SECONDS)
         _       <- ref.modify(ts => (current :: ts, ()))
+        _       <- io
       } yield ()
     }
 
@@ -87,7 +90,7 @@ class SchedulerSpec extends WordSpec with Matchers {
         val schedule = Schedule.spaced(1.second)
 
         startedImmediately
-        differencesBetweenRunTimes.forall(_ == 1) shouldBe true
+        differencesBetweenRunTimes.distinct shouldBe List(1)
       }
     }
 
@@ -96,8 +99,30 @@ class SchedulerSpec extends WordSpec with Matchers {
         val schedule = Schedule.occurs(2).space(1.second)
 
         startedImmediately
-        differencesBetweenRunTimes.forall(_ == 1) shouldBe true
+        differencesBetweenRunTimes.distinct shouldBe List(1)
       }
+    }
+  }
+
+  "A fixed schedule" should {
+    "compute delays respecting the time it took to run the effect" in new RunTimesScope {
+      override val timeBox = 20.seconds
+      override val io = for {
+        seconds <- IO.delay(new scala.util.Random().nextInt(3) + 1)
+        _       <- timer.sleep(seconds.seconds)
+      } yield ()
+      val schedule = Schedule.fixed(5.seconds)
+
+      startedImmediately
+      differencesBetweenRunTimes.distinct shouldBe List(5)
+    }
+
+    "not introduce further delay if the effect takes more time than the fixed spacing" in new RunTimesScope {
+      override val io = timer.sleep(2.seconds)
+      val schedule    = Schedule.fixed(1.second)
+
+      startedImmediately
+      differencesBetweenRunTimes.distinct shouldBe List(2)
     }
   }
 

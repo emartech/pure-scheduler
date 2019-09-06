@@ -144,9 +144,14 @@ trait PredefinedSchedules {
   import Schedule.{Init, Decision}
   import syntax._
 
-  def unfold[F[+_]: Applicative, B](zero: => B)(f: B => B): Schedule[F, Any, B] = Schedule[F, B, Any, B](
+  def unfold[F[+_]: Applicative, B](zero: => B)(f: B => B): Schedule.Aux[F, B, Any, B] = Schedule[F, B, Any, B](
     Init(Duration.Zero, zero).pure[F],
     (_, b) => Decision(continue = true, Duration.Zero, f(b), f(b)).pure[F]
+  )
+
+  def unfoldM[F[+_]: Functor, B](zero: F[B])(f: B => F[B]): Schedule.Aux[F, B, Any, B] = Schedule[F, B, Any, B](
+    zero.map(z => Init(Duration.Zero, z)),
+    (_, b) => f(b).map(newB => Decision(continue = true, Duration.Zero, newB, newB))
   )
 
   def forever[F[+_]: Applicative]: Schedule[F, Any, Int] =
@@ -171,6 +176,26 @@ trait PredefinedSchedules {
   def spaced[F[+_]: Monad](interval: FiniteDuration): Schedule[F, Any, Int] =
     forever.space(interval)
 
+  def fixed[F[+_]: Monad: Timer](interval: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+    Schedule.mapDecision(elapsed.map(elapsed => (interval - elapsed) max Duration.Zero)) { d =>
+      val (_, n) = d.state
+      d.copy(
+        state = (d.result.toNanos + n, n),
+        delay = d.result
+      )
+    }
+
+  def elapsed[F[+_]: Functor: Timer]: Schedule.Aux[F, (Long, Long), Any, FiniteDuration] =
+    timing.map { case (s, n) => (n - s).nanos }
+
+  def timing[F[+_]: Functor: Timer]: Schedule.Aux[F, (Long, Long), Any, (Long, Long)] =
+    unfoldM(Timer[F].clock.monotonic(NANOSECONDS).map(n => (n, n))) {
+      case (s, _) => Timer[F].clock.monotonic(NANOSECONDS).map(n => (s, n))
+    }
+
+  def maxFor[F[+_]: Monad: Timer](timeCap: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+    elapsed.reconsider(_.result < timeCap)
+
   def continueOn[F[+_]: Monad](b: Boolean): Schedule[F, Boolean, Int] =
     forever <* identity.reconsider(_.result == b)
 
@@ -191,16 +216,6 @@ trait PredefinedSchedules {
 
   def exponential[F[+_]: Applicative](unit: FiniteDuration, base: Double = 2.0): Schedule[F, Any, FiniteDuration] =
     Schedule.delayFromOut(forever.map(exponent => unit * math.pow(base, exponent.doubleValue).longValue))
-
-  def maxFor[F[+_]: Functor: Timer](timeCap: FiniteDuration): Schedule[F, Any, FiniteDuration] =
-    Schedule[F, Long, Any, FiniteDuration](
-      Timer[F].clock.realTime(MILLISECONDS).map(now => Init(Duration.Zero, now)),
-      (_, startTime) =>
-        Timer[F].clock.realTime(MILLISECONDS).map { now =>
-          val elapsed = (now - startTime).millis
-          Decision(elapsed < timeCap, Duration.Zero, startTime, elapsed)
-        }
-    )
 }
 
 trait Combinators {
