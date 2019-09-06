@@ -7,15 +7,15 @@ import cats.syntax.all._
 
 import scala.concurrent.duration._
 
-trait Schedule[F[+ _], -A, +B] {
+trait Schedule[F[+_], -A, +B] {
   type State
   val initial: F[Schedule.Init[State]]
   val update: (A, State) => F[Schedule.Decision[State, B]]
 }
 
 object Schedule extends Scheduler with ScheduleInstances with PredefinedSchedules with Combinators {
-  type Aux[F[+ _], S, A, B] = Schedule[F, A, B] { type State = S }
-  type Combine[A]           = (A, A) => A
+  type Aux[F[+_], S, A, B] = Schedule[F, A, B] { type State = S }
+  type Combine[A]          = (A, A) => A
 
   final case class Init[S](delay: FiniteDuration, state: S) {
     def combineWith[S2](that: Init[S2])(combD: Combine[FiniteDuration]) =
@@ -26,7 +26,7 @@ object Schedule extends Scheduler with ScheduleInstances with PredefinedSchedule
       Decision(cont(continue, that.continue), combD(delay, that.delay), (state, that.state), (result, that.result))
   }
 
-  def apply[F[+ _], S, A, B](
+  def apply[F[+_], S, A, B](
       initial0: F[Init[S]],
       update0: (A, S) => F[Decision[S, B]]
   ): Schedule.Aux[F, S, A, B] = new Schedule[F, A, B] {
@@ -39,7 +39,7 @@ object Schedule extends Scheduler with ScheduleInstances with PredefinedSchedule
 trait Scheduler {
   import Schedule.Decision
 
-  def run[F[+ _]: Monad: Timer, A, B](F: F[A], schedule: Schedule[F, A, B]): F[B] = {
+  def run[F[+_]: Monad: Timer, A, B](F: F[A], schedule: Schedule[F, A, B]): F[B] = {
     def loop(decision: Decision[schedule.State, B]): F[B] =
       if (decision.continue)
         for {
@@ -62,7 +62,7 @@ trait Scheduler {
       .flatMap(loop)
   }
 
-  def retry[E, F[+ _]: MonadError[?[_], E]: Timer, A, B](F: F[A], policy: Schedule[F, E, B]): F[A] = {
+  def retry[E, F[+_]: MonadError[?[_], E]: Timer, A, B](F: F[A], policy: Schedule[F, E, B]): F[A] = {
     def loop(decision: Decision[policy.State, B]): PartialFunction[E, F[A]] = {
       case e if decision.continue =>
         for {
@@ -110,7 +110,7 @@ trait ScheduleInstances {
       fab.copy(state = f(fab.state), result = g(fab.result))
   }
 
-  implicit def eqForSchedule[F[+ _], S, A, B](
+  implicit def eqForSchedule[F[+_], S, A, B](
       implicit eqFI: Eq[F[Init[S]]],
       eqASFD: Eq[(A, S) => F[Decision[S, B]]]
   ) = new Eq[Schedule.Aux[F, S, A, B]] {
@@ -118,7 +118,7 @@ trait ScheduleInstances {
       s1.initial === s2.initial && s1.update === s2.update
   }
 
-  implicit def profunctorForSchedule[F[+ _]: Functor, S] = new Profunctor[Schedule.Aux[F, S, ?, ?]] {
+  implicit def profunctorForSchedule[F[+_]: Functor, S] = new Profunctor[Schedule.Aux[F, S, ?, ?]] {
     def dimap[A, B, C, D](fab: Schedule.Aux[F, S, A, B])(f: C => A)(g: B => D): Schedule.Aux[F, S, C, D] =
       Schedule[F, S, C, D](
         fab.initial,
@@ -126,16 +126,16 @@ trait ScheduleInstances {
       )
   }
 
-  implicit def relaxedProfunctorForSchedule[F[+ _]: Functor] = new Profunctor[Schedule[F, ?, ?]] {
+  implicit def relaxedProfunctorForSchedule[F[+_]: Functor] = new Profunctor[Schedule[F, ?, ?]] {
     def dimap[A, B, C, D](fab: Schedule[F, A, B])(f: C => A)(g: B => D): Schedule[F, C, D] =
       profunctorForSchedule[F, fab.State].dimap(fab)(f)(g)
   }
 
-  implicit def functorForSchedule[F[+ _]: Functor, S, A] = new Functor[Schedule.Aux[F, S, A, ?]] {
+  implicit def functorForSchedule[F[+_]: Functor, S, A] = new Functor[Schedule.Aux[F, S, A, ?]] {
     def map[B, C](fa: Schedule.Aux[F, S, A, B])(f: B => C) = profunctorForSchedule[F, S].rmap(fa)(f)
   }
 
-  implicit def relaxedFunctorForSchedule[F[+ _]: Functor, A] = new Functor[Schedule[F, A, ?]] {
+  implicit def relaxedFunctorForSchedule[F[+_]: Functor, A] = new Functor[Schedule[F, A, ?]] {
     def map[B, C](fa: Schedule[F, A, B])(f: B => C) = functorForSchedule[F, fa.State, A].map(fa)(f)
   }
 }
@@ -144,55 +144,55 @@ trait PredefinedSchedules {
   import Schedule.{Init, Decision}
   import syntax._
 
-  def unfold[F[+ _]: Applicative, B](zero: => B)(f: B => B): Schedule[F, Any, B] = Schedule[F, B, Any, B](
+  def unfold[F[+_]: Applicative, B](zero: => B)(f: B => B): Schedule[F, Any, B] = Schedule[F, B, Any, B](
     Init(Duration.Zero, zero).pure[F],
     (_, b) => Decision(continue = true, Duration.Zero, f(b), f(b)).pure[F]
   )
 
-  def forever[F[+ _]: Applicative]: Schedule[F, Any, Int] =
+  def forever[F[+_]: Applicative]: Schedule[F, Any, Int] =
     unfold(0)(_ + 1)
 
-  def never[F[+ _]: Async]: Schedule[F, Any, Nothing] = Schedule[F, Unit, Any, Nothing](
+  def never[F[+_]: Async]: Schedule[F, Any, Nothing] = Schedule[F, Unit, Any, Nothing](
     Async[F].never,
     (_, _) => Async[F].never
   )
 
-  def identity[F[+ _]: Applicative, A]: Schedule[F, A, A] = Schedule[F, Unit, A, A](
+  def identity[F[+_]: Applicative, A]: Schedule[F, A, A] = Schedule[F, Unit, A, A](
     Init(Duration.Zero, ()).pure[F],
     (a, _) => Decision(continue = true, Duration.Zero, (), a).pure[F]
   )
 
-  def occurs[F[+ _]: Monad](times: Int): Schedule[F, Any, Int] =
+  def occurs[F[+_]: Monad](times: Int): Schedule[F, Any, Int] =
     forever.reconsider(_.result < times)
 
-  def after[F[+ _]: Monad](delay: FiniteDuration): Schedule[F, Any, Int] =
+  def after[F[+_]: Monad](delay: FiniteDuration): Schedule[F, Any, Int] =
     forever.after(delay)
 
-  def spaced[F[+ _]: Monad](interval: FiniteDuration): Schedule[F, Any, Int] =
+  def spaced[F[+_]: Monad](interval: FiniteDuration): Schedule[F, Any, Int] =
     forever.space(interval)
 
-  def continueOn[F[+ _]: Monad](b: Boolean): Schedule[F, Boolean, Int] =
+  def continueOn[F[+_]: Monad](b: Boolean): Schedule[F, Boolean, Int] =
     forever <* identity.reconsider(_.result == b)
 
-  def whileInput[F[+ _]: Monad, A](p: A => Boolean): Schedule[F, A, Int] =
+  def whileInput[F[+_]: Monad, A](p: A => Boolean): Schedule[F, A, Int] =
     continueOn(true) lmap p
 
-  def untilInput[F[+ _]: Monad, A](p: A => Boolean): Schedule[F, A, Int] =
+  def untilInput[F[+_]: Monad, A](p: A => Boolean): Schedule[F, A, Int] =
     continueOn(false) lmap p
 
-  def collect[F[+ _]: Monad, A]: Schedule[F, A, List[A]] =
+  def collect[F[+_]: Monad, A]: Schedule[F, A, List[A]] =
     identity.collect
 
-  def fibonacci[F[+ _]: Applicative](one: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+  def fibonacci[F[+_]: Applicative](one: FiniteDuration): Schedule[F, Any, FiniteDuration] =
     Schedule.delayFromOut(unfold((Duration.Zero, one))({ case (p, c) => (c, p + c) }).map(_._2))
 
-  def linear[F[+ _]: Applicative](unit: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+  def linear[F[+_]: Applicative](unit: FiniteDuration): Schedule[F, Any, FiniteDuration] =
     Schedule.delayFromOut(forever.map(_ * unit))
 
-  def exponential[F[+ _]: Applicative](unit: FiniteDuration, base: Double = 2.0): Schedule[F, Any, FiniteDuration] =
+  def exponential[F[+_]: Applicative](unit: FiniteDuration, base: Double = 2.0): Schedule[F, Any, FiniteDuration] =
     Schedule.delayFromOut(forever.map(exponent => unit * math.pow(base, exponent.doubleValue).longValue))
 
-  def maxFor[F[+ _]: Functor: Timer](timeCap: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+  def maxFor[F[+_]: Functor: Timer](timeCap: FiniteDuration): Schedule[F, Any, FiniteDuration] =
     Schedule[F, Long, Any, FiniteDuration](
       Timer[F].clock.realTime(MILLISECONDS).map(now => Init(Duration.Zero, now)),
       (_, startTime) =>
@@ -206,7 +206,7 @@ trait PredefinedSchedules {
 trait Combinators {
   import Schedule.{Init, Decision, Combine}
 
-  def combine[F[+ _]: Apply, A, A1 <: A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A1, C])(
+  def combine[F[+_]: Apply, A, A1 <: A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A1, C])(
       cont: Combine[Boolean]
   )(delay: Combine[FiniteDuration]): Schedule[F, A1, (B, C)] =
     Schedule[F, (S1.State, S2.State), A1, (B, C)](
@@ -220,7 +220,7 @@ trait Combinators {
       }
     )
 
-  def mapInit[F[+ _]: Functor, A, B](S: Schedule[F, A, B])(
+  def mapInit[F[+_]: Functor, A, B](S: Schedule[F, A, B])(
       f: Init[S.State] => Init[S.State]
   ): Schedule[F, A, B] =
     Schedule[F, S.State, A, B](
@@ -228,7 +228,7 @@ trait Combinators {
       S.update
     )
 
-  def mapDecision[F[+ _]: Functor, A, B](S: Schedule[F, A, B])(
+  def mapDecision[F[+_]: Functor, A, B](S: Schedule[F, A, B])(
       f: Decision[S.State, B] => Decision[S.State, B]
   ): Schedule[F, A, B] =
     Schedule[F, S.State, A, B](
@@ -236,25 +236,25 @@ trait Combinators {
       S.update(_, _).map(f)
     )
 
-  def delayFromOut[F[+ _]: Functor, A](S: Schedule[F, A, FiniteDuration]) =
+  def delayFromOut[F[+_]: Functor, A](S: Schedule[F, A, FiniteDuration]) =
     mapDecision(S)(d => d.copy(delay = d.result))
 
-  def after[F[+ _]: Functor, A, B](
+  def after[F[+_]: Functor, A, B](
       S: Schedule[F, A, B],
       delay: FiniteDuration
   ): Schedule[F, A, B] =
     mapInit(S)(_.copy(delay = delay))
 
-  def space[F[+ _]: Functor, A, B](
+  def space[F[+_]: Functor, A, B](
       S: Schedule[F, A, B],
       interval: FiniteDuration
   ): Schedule[F, A, B] =
     mapDecision(S)(_.copy(delay = interval))
 
-  def reconsider[F[+ _]: Functor, A, B](S: Schedule[F, A, B])(f: Decision[S.State, B] => Boolean): Schedule[F, A, B] =
+  def reconsider[F[+_]: Functor, A, B](S: Schedule[F, A, B])(f: Decision[S.State, B] => Boolean): Schedule[F, A, B] =
     mapDecision(S)(d => d.copy(continue = f(d)))
 
-  def fold[F[+ _]: Functor, A, B, Z](S: Schedule[F, A, B])(z: Z)(c: (Z, B) => Z): Schedule[F, A, Z] =
+  def fold[F[+_]: Functor, A, B, Z](S: Schedule[F, A, B])(z: Z)(c: (Z, B) => Z): Schedule[F, A, Z] =
     Schedule[F, (Z, S.State), A, Z](
       S.initial.map(i => Init(i.delay, (z, i.state))), {
         case (a, (z, s)) =>
@@ -266,7 +266,7 @@ trait Combinators {
       }
     )
 
-  def sequence[F[+ _]: Monad, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A, C]) = {
+  def sequence[F[+_]: Monad, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, A, C]) = {
     def first(a: A, s1: S1.State): F[Decision[Either[S1.State, S2.State], Either[B, C]]] =
       S1.update(a, s1).map(_.bimap(Left(_), Left(_)))
 
@@ -285,7 +285,7 @@ trait Combinators {
     )
   }
 
-  def compose[F[+ _]: Monad, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, B, C]): Schedule[F, A, C] =
+  def compose[F[+_]: Monad, A, B, C](S1: Schedule[F, A, B], S2: Schedule[F, B, C]): Schedule[F, A, C] =
     Schedule[F, (S1.State, S2.State), A, C](
       for {
         i1 <- S1.initial
@@ -299,7 +299,7 @@ trait Combinators {
       }
     )
 
-  def onDecision[F[+ _]: Monad, A, B](S: Schedule[F, A, B])(
+  def onDecision[F[+_]: Monad, A, B](S: Schedule[F, A, B])(
       f: Decision[S.State, B] => F[Unit]
   ): Schedule[F, A, B] =
     Schedule[F, S.State, A, B](
