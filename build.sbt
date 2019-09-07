@@ -1,6 +1,6 @@
 organization := "com.emarsys"
 name := "scheduler"
-scalaVersion := "2.12.8"
+scalaVersion := "2.12.9"
 
 scalacOptions ++= Seq(
   "-language:higherKinds",
