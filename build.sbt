@@ -39,7 +39,7 @@ libraryDependencies += "org.scalatest"  %% "scalatest"        % "3.0.7" % Test
 libraryDependencies += "org.typelevel"  %% "cats-testkit"     % "1.6.0" % Test
 libraryDependencies += "org.typelevel"  %% "cats-effect-laws" % "1.3.0" % Test
 
-addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.1")
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
 addCompilerPlugin("io.tryp"       % "splain"          % "0.4.1" cross CrossVersion.patch)
 
 inThisBuild(
