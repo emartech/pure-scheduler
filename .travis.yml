@@ -16,6 +16,10 @@ stages:
 jobs:
   include:
     - stage: test
+      name: formatting
+      script: sbt scalafmtCheckAll
+    - stage: test
+      name: test
       script: sbt test
     - stage: release
       script: sbt ci-release
