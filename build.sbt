@@ -32,11 +32,11 @@ scalacOptions ++= Seq(
 
 scalafmtOnCompile := true
 
-libraryDependencies += "org.typelevel"  %% "cats-core"        % "1.6.0"
+libraryDependencies += "org.typelevel"  %% "cats-core"        % "1.6.1"
 libraryDependencies += "org.typelevel"  %% "cats-effect"      % "1.3.0"
 libraryDependencies += "org.scalacheck" %% "scalacheck"       % "1.14.0" % Test
 libraryDependencies += "org.scalatest"  %% "scalatest"        % "3.0.7" % Test
-libraryDependencies += "org.typelevel"  %% "cats-testkit"     % "1.6.0" % Test
+libraryDependencies += "org.typelevel"  %% "cats-testkit"     % "1.6.1" % Test
 libraryDependencies += "org.typelevel"  %% "cats-effect-laws" % "1.3.0" % Test
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.1")
