@@ -1,16 +1,22 @@
 package com.emarsys.scheduler
 
 import cats.{Applicative, Eq}
-import cats.tests.CatsSuite
 import cats.kernel.laws.discipline.EqTests
 import cats.laws.discipline.{BifunctorTests, FunctorTests, ProfunctorTests}
 import org.scalacheck.{Arbitrary, Cogen}
+import org.scalatest.funsuite.AnyFunSuite
+import org.typelevel.discipline.scalatest.Discipline
 import Arbitrary.arbitrary
 import Schedule.{Init, Decision}
 
 import scala.concurrent.duration.FiniteDuration
 
-class ScheduleProps extends CatsSuite with ScheduleGenerators with ArrowEq {
+class ScheduleProps extends AnyFunSuite with Discipline with ScheduleGenerators with ArrowEq {
+  import cats.instances.int._
+  import cats.instances.string._
+  import cats.instances.unit._
+  import cats.instances.list._
+
   checkAll(
     "Init.EqLaws",
     EqTests[Init[Int]].eqv
