@@ -2,12 +2,13 @@ package com.emarsys.scheduler
 
 import cats.effect.IO
 import cats.effect.concurrent.Ref
-import org.scalatest.{Matchers, WordSpec}
+import org.scalatest.wordspec.AnyWordSpec
+import org.scalatest.matchers.should.Matchers
 
 import scala.concurrent.duration._
 import scala.util._
 
-class RetrySpec extends WordSpec with Matchers {
+class RetrySpec extends AnyWordSpec with Matchers {
   import Schedule.Decision
   import syntax._
   import cats.syntax.all._

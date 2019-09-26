@@ -31,11 +31,12 @@ scalacOptions ++= Seq(
 )
 
 scalafmtOnCompile := true
+onChangedBuildSource := ReloadOnSourceChanges
 
 libraryDependencies += "org.typelevel"  %% "cats-core"            % "2.0.0"
 libraryDependencies += "org.typelevel"  %% "cats-effect"          % "2.0.0"
 libraryDependencies += "org.scalacheck" %% "scalacheck"           % "1.14.2" % Test
-libraryDependencies += "org.scalatest"  %% "scalatest"            % "3.1.0-SNAP13" % Test
+libraryDependencies += "org.scalatest"  %% "scalatest"            % "3.1.0-RC3" % Test
 libraryDependencies += "org.typelevel"  %% "cats-laws"            % "2.0.0" % Test
 libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "1.0.0-M1" % Test
 libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "2.0.0" % Test
