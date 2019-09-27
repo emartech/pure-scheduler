@@ -28,6 +28,7 @@ jobs:
       script: sbt ++$TRAVIS_SCALA_VERSION test
       scala: *scala_version_213
     - stage: release
+      name: release
       script: sbt ci-release
 
 cache:
