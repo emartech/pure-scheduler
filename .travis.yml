@@ -1,9 +1,10 @@
 sudo: false
 language: scala
-scala:
-  - 2.12.9
 jdk:
   - oraclejdk11
+
+scala_version_212: &scala_version_212 "2.12.10"
+scala_version_213: &scala_version_213 "2.13.0"
 
 before_install:
   - git fetch --tags
@@ -19,8 +20,13 @@ jobs:
       name: formatting
       script: sbt scalafmtCheckAll
     - stage: test
-      name: test
-      script: sbt test
+      name: test 2.12
+      script: sbt ++$TRAVIS_SCALA_VERSION test
+      scala: *scala_version_212
+    - stage: test
+      name: test 2.13
+      script: sbt ++$TRAVIS_SCALA_VERSION test
+      scala: *scala_version_213
     - stage: release
       script: sbt ci-release
 
