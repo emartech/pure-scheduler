@@ -51,13 +51,12 @@ trait Scheduler {
       else decision.result.pure[F]
 
     schedule.initial
-      .flatMap(
-        initial =>
-          for {
-            _ <- Timer[F].sleep(initial.delay)
-            a <- F
-            d <- schedule.update(a, initial.state)
-          } yield d
+      .flatMap(initial =>
+        for {
+          _ <- Timer[F].sleep(initial.delay)
+          a <- F
+          d <- schedule.update(a, initial.state)
+        } yield d
       )
       .flatMap(loop)
   }
