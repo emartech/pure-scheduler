@@ -11,7 +11,7 @@ libraryDependencies += "org.typelevel"  %% "cats-effect"          % "2.1.0"
 libraryDependencies += "org.scalacheck" %% "scalacheck"           % "1.14.3" % Test
 libraryDependencies += "org.scalatest"  %% "scalatest"            % "3.1.0" % Test
 libraryDependencies += "org.typelevel"  %% "cats-laws"            % "2.1.0" % Test
-libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "1.0.0-RC1" % Test
+libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "1.0.0" % Test
 libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "2.1.0" % Test
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
