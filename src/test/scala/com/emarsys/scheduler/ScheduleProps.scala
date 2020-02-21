@@ -5,13 +5,14 @@ import cats.kernel.laws.discipline.EqTests
 import cats.laws.discipline.{BifunctorTests, FunctorTests, ProfunctorTests}
 import org.scalacheck.{Arbitrary, Cogen}
 import org.scalatest.funsuite.AnyFunSuite
-import org.typelevel.discipline.scalatest.Discipline
+import org.scalatestplus.scalacheck.Checkers
+import org.typelevel.discipline.scalatest.FunSuiteDiscipline
 import Arbitrary.arbitrary
 import Schedule.{Init, Decision}
 
 import scala.concurrent.duration.FiniteDuration
 
-class ScheduleProps extends AnyFunSuite with Discipline with ScheduleGenerators with ArrowEq {
+class ScheduleProps extends AnyFunSuite with FunSuiteDiscipline with Checkers with ScheduleGenerators with ArrowEq {
   import cats.instances.int._
   import cats.instances.string._
   import cats.instances.unit._
