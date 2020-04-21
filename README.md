@@ -13,7 +13,8 @@ The aims of this library are
 ## Include in your project
 
 ```
-libraryDependencies += "com.emarsys" % "scheduler" % "x.y.z"
+libraryDependencies += "com.emarsys" % "scheduler_2.12" % "x.y.z" // for Scala 2.12
+libraryDependencies += "com.emarsys" % "scheduler_2.13" % "x.y.z" // for Scala 2.13
 ```
 
 The latest released version is on the maven badge at the top of this document.
