@@ -207,5 +207,5 @@ Produce a schedule that starts with an exponential spacing from 10 millis and af
 ```
 
 
-[ZIO Schedule]: https://scalaz.github.io/scalaz-zio/datatypes/schedule.html
+[ZIO Schedule]: https://zio.dev/docs/datatypes/datatypes_schedule
 [John A. DeGoes's talk on ZIO Schedules]: https://www.youtube.com/watch?v=onQSHiafAY8
