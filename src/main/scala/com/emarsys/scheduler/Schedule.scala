@@ -29,11 +29,12 @@ object Schedule extends Scheduler with ScheduleInstances with PredefinedSchedule
   def apply[F[+_], S, A, B](
       initial0: F[Init[S]],
       update0: (A, S) => F[Decision[S, B]]
-  ): Schedule.Aux[F, S, A, B] = new Schedule[F, A, B] {
-    type State = S
-    val initial = initial0
-    val update  = update0
-  }
+  ): Schedule.Aux[F, S, A, B] =
+    new Schedule[F, A, B] {
+      type State = S
+      val initial = initial0
+      val update  = update0
+    }
 }
 
 trait Scheduler {
@@ -86,85 +87,96 @@ trait Scheduler {
 trait ScheduleInstances {
   import Schedule.{Init, Decision}
 
-  implicit def eqForInit[S: Eq] = new Eq[Init[S]] {
-    def eqv(i1: Init[S], i2: Init[S]) =
-      i1.delay == i2.delay &&
-        i1.state === i2.state
-  }
+  implicit def eqForInit[S: Eq] =
+    new Eq[Init[S]] {
+      def eqv(i1: Init[S], i2: Init[S]) =
+        i1.delay == i2.delay &&
+          i1.state === i2.state
+    }
 
   implicit val functorForInit = new Functor[Init] {
     def map[A, B](init: Init[A])(f: A => B) = Init(init.delay, f(init.state))
   }
 
-  implicit def eqForDecision[S: Eq, B: Eq] = new Eq[Decision[S, B]] {
-    def eqv(d1: Decision[S, B], d2: Decision[S, B]) =
-      d1.continue == d2.continue &&
-        d1.delay == d2.delay &&
-        d1.state === d2.state &&
-        d1.result === d2.result
-  }
+  implicit def eqForDecision[S: Eq, B: Eq] =
+    new Eq[Decision[S, B]] {
+      def eqv(d1: Decision[S, B], d2: Decision[S, B]) =
+        d1.continue == d2.continue &&
+          d1.delay == d2.delay &&
+          d1.state === d2.state &&
+          d1.result === d2.result
+    }
 
   implicit val bifunctorForDecision = new Bifunctor[Decision] {
     def bimap[A, B, C, D](fab: Decision[A, B])(f: A => C, g: B => D): Decision[C, D] =
       fab.copy(state = f(fab.state), result = g(fab.result))
   }
 
-  implicit def eqForSchedule[F[+_], S, A, B](
-      implicit eqFI: Eq[F[Init[S]]],
+  implicit def eqForSchedule[F[+_], S, A, B](implicit
+      eqFI: Eq[F[Init[S]]],
       eqASFD: Eq[(A, S) => F[Decision[S, B]]]
-  ) = new Eq[Schedule.Aux[F, S, A, B]] {
-    def eqv(s1: Schedule.Aux[F, S, A, B], s2: Schedule.Aux[F, S, A, B]) =
-      s1.initial === s2.initial && s1.update === s2.update
-  }
+  ) =
+    new Eq[Schedule.Aux[F, S, A, B]] {
+      def eqv(s1: Schedule.Aux[F, S, A, B], s2: Schedule.Aux[F, S, A, B]) =
+        s1.initial === s2.initial && s1.update === s2.update
+    }
 
-  implicit def profunctorForSchedule[F[+_]: Functor, S] = new Profunctor[Schedule.Aux[F, S, ?, ?]] {
-    def dimap[A, B, C, D](fab: Schedule.Aux[F, S, A, B])(f: C => A)(g: B => D): Schedule.Aux[F, S, C, D] =
-      Schedule[F, S, C, D](
-        fab.initial,
-        (c, s) => fab.update(f(c), s).map(d => Decision(d.continue, d.delay, d.state, g(d.result)))
-      )
-  }
+  implicit def profunctorForSchedule[F[+_]: Functor, S] =
+    new Profunctor[Schedule.Aux[F, S, ?, ?]] {
+      def dimap[A, B, C, D](fab: Schedule.Aux[F, S, A, B])(f: C => A)(g: B => D): Schedule.Aux[F, S, C, D] =
+        Schedule[F, S, C, D](
+          fab.initial,
+          (c, s) => fab.update(f(c), s).map(d => Decision(d.continue, d.delay, d.state, g(d.result)))
+        )
+    }
 
-  implicit def relaxedProfunctorForSchedule[F[+_]: Functor] = new Profunctor[Schedule[F, ?, ?]] {
-    def dimap[A, B, C, D](fab: Schedule[F, A, B])(f: C => A)(g: B => D): Schedule[F, C, D] =
-      profunctorForSchedule[F, fab.State].dimap(fab)(f)(g)
-  }
+  implicit def relaxedProfunctorForSchedule[F[+_]: Functor] =
+    new Profunctor[Schedule[F, ?, ?]] {
+      def dimap[A, B, C, D](fab: Schedule[F, A, B])(f: C => A)(g: B => D): Schedule[F, C, D] =
+        profunctorForSchedule[F, fab.State].dimap(fab)(f)(g)
+    }
 
-  implicit def functorForSchedule[F[+_]: Functor, S, A] = new Functor[Schedule.Aux[F, S, A, ?]] {
-    def map[B, C](fa: Schedule.Aux[F, S, A, B])(f: B => C) = profunctorForSchedule[F, S].rmap(fa)(f)
-  }
+  implicit def functorForSchedule[F[+_]: Functor, S, A] =
+    new Functor[Schedule.Aux[F, S, A, ?]] {
+      def map[B, C](fa: Schedule.Aux[F, S, A, B])(f: B => C) = profunctorForSchedule[F, S].rmap(fa)(f)
+    }
 
-  implicit def relaxedFunctorForSchedule[F[+_]: Functor, A] = new Functor[Schedule[F, A, ?]] {
-    def map[B, C](fa: Schedule[F, A, B])(f: B => C) = functorForSchedule[F, fa.State, A].map(fa)(f)
-  }
+  implicit def relaxedFunctorForSchedule[F[+_]: Functor, A] =
+    new Functor[Schedule[F, A, ?]] {
+      def map[B, C](fa: Schedule[F, A, B])(f: B => C) = functorForSchedule[F, fa.State, A].map(fa)(f)
+    }
 }
 
 trait PredefinedSchedules {
   import Schedule.{Init, Decision}
   import syntax._
 
-  def unfold[F[+_]: Applicative, B](zero: => B)(f: B => B): Schedule.Aux[F, B, Any, B] = Schedule[F, B, Any, B](
-    Init(Duration.Zero, zero).pure[F],
-    (_, b) => Decision(continue = true, Duration.Zero, f(b), f(b)).pure[F]
-  )
+  def unfold[F[+_]: Applicative, B](zero: => B)(f: B => B): Schedule.Aux[F, B, Any, B] =
+    Schedule[F, B, Any, B](
+      Init(Duration.Zero, zero).pure[F],
+      (_, b) => Decision(continue = true, Duration.Zero, f(b), f(b)).pure[F]
+    )
 
-  def unfoldM[F[+_]: Functor, B](zero: F[B])(f: B => F[B]): Schedule.Aux[F, B, Any, B] = Schedule[F, B, Any, B](
-    zero.map(z => Init(Duration.Zero, z)),
-    (_, b) => f(b).map(newB => Decision(continue = true, Duration.Zero, newB, newB))
-  )
+  def unfoldM[F[+_]: Functor, B](zero: F[B])(f: B => F[B]): Schedule.Aux[F, B, Any, B] =
+    Schedule[F, B, Any, B](
+      zero.map(z => Init(Duration.Zero, z)),
+      (_, b) => f(b).map(newB => Decision(continue = true, Duration.Zero, newB, newB))
+    )
 
   def forever[F[+_]: Applicative]: Schedule[F, Any, Int] =
     unfold(0)(_ + 1)
 
-  def never[F[+_]: Async]: Schedule[F, Any, Nothing] = Schedule[F, Unit, Any, Nothing](
-    Async[F].never,
-    (_, _) => Async[F].never
-  )
+  def never[F[+_]: Async]: Schedule[F, Any, Nothing] =
+    Schedule[F, Unit, Any, Nothing](
+      Async[F].never,
+      (_, _) => Async[F].never
+    )
 
-  def identity[F[+_]: Applicative, A]: Schedule[F, A, A] = Schedule[F, Unit, A, A](
-    Init(Duration.Zero, ()).pure[F],
-    (a, _) => Decision(continue = true, Duration.Zero, (), a).pure[F]
-  )
+  def identity[F[+_]: Applicative, A]: Schedule[F, A, A] =
+    Schedule[F, Unit, A, A](
+      Init(Duration.Zero, ()).pure[F],
+      (a, _) => Decision(continue = true, Duration.Zero, (), a).pure[F]
+    )
 
   def occurs[F[+_]: Monad](times: Int): Schedule[F, Any, Int] =
     forever.reconsider(_.result < times)
@@ -226,7 +238,8 @@ trait Combinators {
     Schedule[F, (S1.State, S2.State), A1, (B, C)](
       (S1.initial, S2.initial) mapN {
         case (i1, i2) => i1.combineWith(i2)(delay)
-      }, {
+      },
+      {
         case (a, (s1, s2)) =>
           (S1.update(a, s1), S2.update(a, s2)) mapN {
             case (d1, d2) => d1.combineWith(d2)(cont)(delay)
@@ -270,7 +283,8 @@ trait Combinators {
 
   def fold[F[+_]: Functor, A, B, Z](S: Schedule[F, A, B])(z: Z)(c: (Z, B) => Z): Schedule[F, A, Z] =
     Schedule[F, (Z, S.State), A, Z](
-      S.initial.map(i => Init(i.delay, (z, i.state))), {
+      S.initial.map(i => Init(i.delay, (z, i.state))),
+      {
         case (a, (z, s)) =>
           S.update(a, s) map {
             case Decision(cont, delay, state, b) =>
@@ -288,7 +302,8 @@ trait Combinators {
       S2.update(a, s2).map(_.bimap(Right(_), Right(_)))
 
     Schedule[F, Either[S1.State, S2.State], A, Either[B, C]](
-      S1.initial.map(_.map(Left(_))), {
+      S1.initial.map(_.map(Left(_))),
+      {
         case (a, Left(s1)) =>
           first(a, s1) flatMap { d =>
             if (d.continue) d.pure[F]
@@ -304,7 +319,8 @@ trait Combinators {
       for {
         i1 <- S1.initial
         i2 <- S2.initial
-      } yield i1.combineWith(i2)(_ + _), {
+      } yield i1.combineWith(i2)(_ + _),
+      {
         case (a, (s1, s2)) =>
           for {
             d1 <- S1.update(a, s1)
