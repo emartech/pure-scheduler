@@ -13,7 +13,7 @@ The aims of this library are
 ## Include in your project
 
 ```
-libraryDependencies += "com.emarsys" % "scheduler" % "x.y.z"
+libraryDependencies += "com.emarsys" %% "scheduler" % "x.y.z"
 ```
 
 The latest released version is on the maven badge at the top of this document.
