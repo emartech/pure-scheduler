@@ -19,8 +19,8 @@ class RetrySpec extends AnyWordSpec with Matchers {
 
   val failingIO                 = IO.raiseError(new Exception)
   val fail: Unit => IO[Nothing] = _ => failingIO
-  val unit: PartialFunction[Throwable, IO[Unit]] = {
-    case _ => IO.unit
+  val unit: PartialFunction[Throwable, IO[Unit]] = { case _ =>
+    IO.unit
   }
 
   trait RetryScope extends IOScope {

@@ -72,14 +72,13 @@ trait Scheduler {
         } yield a
     }
 
-    F recoverWith {
-      case e =>
-        for {
-          initial <- policy.initial
-          _       <- Timer[F].sleep(initial.delay)
-          d       <- policy.update(e, initial.state)
-          a       <- F.recoverWith(loop(d))
-        } yield a
+    F recoverWith { case e =>
+      for {
+        initial <- policy.initial
+        _       <- Timer[F].sleep(initial.delay)
+        d       <- policy.update(e, initial.state)
+        a       <- F.recoverWith(loop(d))
+      } yield a
     }
   }
 }
@@ -200,8 +199,8 @@ trait PredefinedSchedules {
     timing.map { case (s, n) => (n - s).nanos }
 
   def timing[F[+_]: Functor: Timer]: Schedule.Aux[F, (Long, Long), Any, (Long, Long)] =
-    unfoldM(Timer[F].clock.monotonic(NANOSECONDS).map(n => (n, n))) {
-      case (s, _) => Timer[F].clock.monotonic(NANOSECONDS).map(n => (s, n))
+    unfoldM(Timer[F].clock.monotonic(NANOSECONDS).map(n => (n, n))) { case (s, _) =>
+      Timer[F].clock.monotonic(NANOSECONDS).map(n => (s, n))
     }
 
   def maxFor[F[+_]: Monad: Timer](timeCap: FiniteDuration): Schedule[F, Any, FiniteDuration] =
@@ -236,14 +235,13 @@ trait Combinators {
       cont: Combine[Boolean]
   )(delay: Combine[FiniteDuration]): Schedule[F, A1, (B, C)] =
     Schedule[F, (S1.State, S2.State), A1, (B, C)](
-      (S1.initial, S2.initial) mapN {
-        case (i1, i2) => i1.combineWith(i2)(delay)
+      (S1.initial, S2.initial) mapN { case (i1, i2) =>
+        i1.combineWith(i2)(delay)
       },
-      {
-        case (a, (s1, s2)) =>
-          (S1.update(a, s1), S2.update(a, s2)) mapN {
-            case (d1, d2) => d1.combineWith(d2)(cont)(delay)
-          }
+      { case (a, (s1, s2)) =>
+        (S1.update(a, s1), S2.update(a, s2)) mapN { case (d1, d2) =>
+          d1.combineWith(d2)(cont)(delay)
+        }
       }
     )
 
@@ -284,13 +282,11 @@ trait Combinators {
   def fold[F[+_]: Functor, A, B, Z](S: Schedule[F, A, B])(z: Z)(c: (Z, B) => Z): Schedule[F, A, Z] =
     Schedule[F, (Z, S.State), A, Z](
       S.initial.map(i => Init(i.delay, (z, i.state))),
-      {
-        case (a, (z, s)) =>
-          S.update(a, s) map {
-            case Decision(cont, delay, state, b) =>
-              val z2 = c(z, b)
-              Decision(cont, delay, (z2, state), z2)
-          }
+      { case (a, (z, s)) =>
+        S.update(a, s) map { case Decision(cont, delay, state, b) =>
+          val z2 = c(z, b)
+          Decision(cont, delay, (z2, state), z2)
+        }
       }
     )
 
@@ -320,12 +316,11 @@ trait Combinators {
         i1 <- S1.initial
         i2 <- S2.initial
       } yield i1.combineWith(i2)(_ + _),
-      {
-        case (a, (s1, s2)) =>
-          for {
-            d1 <- S1.update(a, s1)
-            d2 <- S2.update(d1.result, s2)
-          } yield d1.combineWith(d2)(_ && _)(_ + _).bimap(identity, _._2)
+      { case (a, (s1, s2)) =>
+        for {
+          d1 <- S1.update(a, s1)
+          d2 <- S2.update(d1.result, s2)
+        } yield d1.combineWith(d2)(_ && _)(_ + _).bimap(identity, _._2)
       }
     )
 

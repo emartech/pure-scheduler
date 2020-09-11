@@ -99,8 +99,8 @@ trait ArrowEq {
   implicit def arrow2Eq[A: Arbitrary, B: Arbitrary, C: Eq]: Eq[(A, B) => C] =
     new Eq[(A, B) => C] {
       def eqv(f1: (A, B) => C, f2: (A, B) => C): Boolean = {
-        List.fill(50)(arbitrary[A].sample zip arbitrary[B].sample).flatten forall {
-          case (a, b) => f1(a, b) === f2(a, b)
+        List.fill(50)(arbitrary[A].sample zip arbitrary[B].sample).flatten forall { case (a, b) =>
+          f1(a, b) === f2(a, b)
         }
       }
     }
