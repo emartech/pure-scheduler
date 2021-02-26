@@ -1,6 +1,6 @@
 organization := "com.emarsys"
 name := "scheduler"
-crossScalaVersions := List("2.13.0", "2.12.10")
+crossScalaVersions := List("2.13.0", "2.12.13")
 
 scalacOptions ++= scalacOptionsFor(scalaVersion.value)
 
