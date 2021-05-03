@@ -8,7 +8,7 @@ scalafmtOnCompile := true
 
 libraryDependencies += "org.typelevel"  %% "cats-core"            % "2.2.0"
 libraryDependencies += "org.typelevel"  %% "cats-effect"          % "2.2.0"
-libraryDependencies += "org.scalacheck" %% "scalacheck"           % "1.14.3" % Test
+libraryDependencies += "org.scalacheck" %% "scalacheck"           % "1.15.4" % Test
 libraryDependencies += "org.scalatest"  %% "scalatest"            % "3.2.2" % Test
 libraryDependencies += "org.typelevel"  %% "cats-laws"            % "2.2.0" % Test
 libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "2.0.1" % Test
