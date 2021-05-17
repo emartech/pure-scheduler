@@ -4,7 +4,7 @@ jdk:
   - oraclejdk11
 
 scala_version_212: &scala_version_212 "2.12.10"
-scala_version_213: &scala_version_213 "2.13.0"
+scala_version_213: &scala_version_213 "2.13.6"
 
 before_install:
   - git fetch --tags
