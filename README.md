@@ -1,4 +1,4 @@
-# pure-scheduler [![Build Status](https://travis-ci.org/emartech/pure-scheduler.svg?branch=master)](https://travis-ci.org/emartech/pure-scheduler) [![Maven Central](https://img.shields.io/maven-central/v/com.emarsys/scheduler_2.12.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.emarsys%22%20AND%20a:%22scheduler_2.12%22)
+# pure-scheduler [![Build Status](https://github.com/emartech/pure-scheduler/actions/workflows/ci.yml/badge.svg)](https://github.com/emartech/pure-scheduler/actions) [![Maven Central](https://img.shields.io/maven-central/v/com.emarsys/scheduler_2.13.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.emarsys%22%20AND%20a:%22scheduler_2.13%22)
 
 A pure scheduler for _referentially transparent_ effect types.
 
