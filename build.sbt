@@ -9,13 +9,13 @@ scalafmtOnCompile := true
 libraryDependencies += "org.typelevel"  %% "cats-core"            % "2.2.0"
 libraryDependencies += "org.typelevel"  %% "cats-effect"          % "2.2.0"
 libraryDependencies += "org.scalacheck" %% "scalacheck"           % "1.14.3" % Test
-libraryDependencies += "org.scalatest"  %% "scalatest"            % "3.2.2" % Test
-libraryDependencies += "org.typelevel"  %% "cats-laws"            % "2.2.0" % Test
-libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "2.0.1" % Test
-libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "2.2.0" % Test
+libraryDependencies += "org.scalatest"  %% "scalatest"            % "3.2.14" % Test
+libraryDependencies += "org.typelevel"  %% "cats-laws"            % "2.2.0"  % Test
+libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "2.0.1"  % Test
+libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "2.2.0"  % Test
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
-addCompilerPlugin("io.tryp"       % "splain"          % "0.4.1" cross CrossVersion.patch)
+addCompilerPlugin("io.tryp"        % "splain"         % "0.4.1" cross CrossVersion.patch)
 
 licenses := Seq("MIT" -> url("http://opensource.org/licenses/MIT"))
 homepage := Some(url("https://github.com/emartech/pure-scheduler"))
