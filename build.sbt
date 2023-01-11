@@ -7,12 +7,12 @@ scalacOptions ++= scalacOptionsFor(scalaVersion.value)
 scalafmtOnCompile := true
 
 libraryDependencies += "org.typelevel"  %% "cats-core"            % "2.9.0"
-libraryDependencies += "org.typelevel"  %% "cats-effect"          % "2.5.5"
+libraryDependencies += "org.typelevel"  %% "cats-effect"          % "3.4.4"
 libraryDependencies += "org.scalacheck" %% "scalacheck"           % "1.17.0" % Test
 libraryDependencies += "org.scalatest"  %% "scalatest"            % "3.2.15" % Test
 libraryDependencies += "org.typelevel"  %% "cats-laws"            % "2.9.0"  % Test
 libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "2.2.0"  % Test
-libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "2.5.5"  % Test
+libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "3.4.4"  % Test
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
 addCompilerPlugin("io.tryp"        % "splain"         % "0.4.1" cross CrossVersion.patch)
