@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  pull_request:
+    branches: ['*']
+  push:
+    branches: ['*']
+    tags: [v*]
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    permissions:
+      actions: write
+    steps:
+    - name: Cancel Previous Runs
+      uses: styfle/cancel-workflow-action@0.9.1
+      with:
+        access_token: ${{ github.token }}
+
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Setup Java and Scala
+      uses: olafurpg/setup-scala@v10
+      with:
+        java-version: openjdk@1.11
+
+    - name: Cache sbt
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.sbt
+          ~/.ivy2/cache
+          ~/.cache/coursier/v1
+        key: sbt-cache-${{ runner.os }}-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
+
+    - name: Check formatting
+      run: sbt scalafmtCheckAll
+
+    - name: Compile & Test
+      run: sbt clean +compile +test
+
+
+  publish:
+    needs: [build]
+    if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/v'))
+    runs-on: ubuntu-20.04
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+
+    - name: Setup Java and Scala
+      uses: olafurpg/setup-scala@v10
+      with:
+        java-version: openjdk@1.11
+
+    - name: Cache sbt
+      uses: actions/cache@v2
+      with:
+        path: |
+          ~/.sbt
+          ~/.ivy2/cache
+          ~/.cache/coursier/v1
+        key: sbt-cache-${{ runner.os }}-${{ hashFiles('**/*.sbt') }}-${{ hashFiles('project/build.properties') }}
+
+    - name: Setup GPG
+      uses: olafurpg/setup-gpg@v3
+
+    - name: Publish
+      run: sbt ci-release
+      env:
+        PGP_PASSPHRASE: ${{ secrets.PGP_PASSPHRASE }}
+        PGP_SECRET: ${{ secrets.PGP_SECRET }}
+        SONATYPE_PASSWORD: ${{ secrets.SONATYPE_PASSWORD }}
+        SONATYPE_USERNAME: ${{ secrets.SONATYPE_USERNAME }}
