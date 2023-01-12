@@ -62,7 +62,7 @@ trait Scheduler {
       .flatMap(loop)
   }
 
-  def retry[E, F[+_]: MonadError[?[_], E]: Timer, A, B](F: F[A], policy: Schedule[F, E, B]): F[A] = {
+  def retry[E, F[+_]: MonadError[_[_], E]: Timer, A, B](F: F[A], policy: Schedule[F, E, B]): F[A] = {
     def loop(decision: Decision[policy.State, B]): PartialFunction[E, F[A]] = {
       case e if decision.continue =>
         for {
@@ -121,7 +121,7 @@ trait ScheduleInstances {
     }
 
   implicit def profunctorForSchedule[F[+_]: Functor, S] =
-    new Profunctor[Schedule.Aux[F, S, ?, ?]] {
+    new Profunctor[Schedule.Aux[F, S, _, _]] {
       def dimap[A, B, C, D](fab: Schedule.Aux[F, S, A, B])(f: C => A)(g: B => D): Schedule.Aux[F, S, C, D] =
         Schedule[F, S, C, D](
           fab.initial,
@@ -130,18 +130,18 @@ trait ScheduleInstances {
     }
 
   implicit def relaxedProfunctorForSchedule[F[+_]: Functor] =
-    new Profunctor[Schedule[F, ?, ?]] {
+    new Profunctor[Schedule[F, _, _]] {
       def dimap[A, B, C, D](fab: Schedule[F, A, B])(f: C => A)(g: B => D): Schedule[F, C, D] =
         profunctorForSchedule[F, fab.State].dimap(fab)(f)(g)
     }
 
   implicit def functorForSchedule[F[+_]: Functor, S, A] =
-    new Functor[Schedule.Aux[F, S, A, ?]] {
+    new Functor[Schedule.Aux[F, S, A, _]] {
       def map[B, C](fa: Schedule.Aux[F, S, A, B])(f: B => C) = profunctorForSchedule[F, S].rmap(fa)(f)
     }
 
   implicit def relaxedFunctorForSchedule[F[+_]: Functor, A] =
-    new Functor[Schedule[F, A, ?]] {
+    new Functor[Schedule[F, A, _]] {
       def map[B, C](fa: Schedule[F, A, B])(f: B => C) = functorForSchedule[F, fa.State, A].map(fa)(f)
     }
 }

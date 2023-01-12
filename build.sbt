@@ -14,7 +14,7 @@ libraryDependencies += "org.typelevel"  %% "cats-laws"            % "2.9.0"  % T
 libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "2.2.0"  % Test
 libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "2.5.5"  % Test
 
-addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
+addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full)
 
 licenses := Seq("MIT" -> url("http://opensource.org/licenses/MIT"))
 homepage := Some(url("https://github.com/emartech/pure-scheduler"))
@@ -44,7 +44,8 @@ def scalacOptionsFor(scalaVersion: String) =
     "-Ywarn-unused:params",
     "-Ywarn-unused:patvars",
     "-Ywarn-unused:privates",
-    "-Xlint"
+    "-Xlint",
+    "-P:kind-projector:underscore-placeholders"
   ) ++ (if (is2_12(scalaVersion))
           Seq(
             "-Ypartial-unification",

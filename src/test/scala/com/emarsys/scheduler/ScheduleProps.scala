@@ -45,12 +45,12 @@ class ScheduleProps extends AnyFunSuite with FunSuiteDiscipline with Checkers wi
 
   checkAll(
     "Schedule.ProfunctorLaws",
-    ProfunctorTests[Schedule.Aux[List, Int, ?, ?]].profunctor[Unit, Int, Boolean, Int, Int, Int]
+    ProfunctorTests[Schedule.Aux[List, Int, _, _]].profunctor[Unit, Int, Boolean, Int, Int, Int]
   )
 
   checkAll(
     "Schedule.FunctorLaws",
-    FunctorTests[Schedule.Aux[List, Unit, Int, ?]].functor[Int, Int, String]
+    FunctorTests[Schedule.Aux[List, Unit, Int, _]].functor[Int, Int, String]
   )
 }
 

@@ -8,7 +8,7 @@ import scala.concurrent.duration.FiniteDuration
 
 trait Syntax {
   implicit def toScheduleOps[F[+_]: Monad: Timer, A](fa: F[A])               = new ScheduleOps(fa)
-  implicit def toRetryOps[E, F[+_]: MonadError[?[_], E]: Timer, A](fa: F[A]) = new RetryOps(fa)
+  implicit def toRetryOps[E, F[+_]: MonadError[*[_], E]: Timer, A](fa: F[A]) = new RetryOps(fa)
   implicit def toCombinators[F[+_]: Monad, A, B](s: Schedule[F, A, B])       = new ScheduleCombinators(s)
 }
 
@@ -16,7 +16,7 @@ final class ScheduleOps[F[+_]: Monad: Timer, A](fa: F[A]) {
   def runOn[B](schedule: Schedule[F, A, B]) = Schedule.run(fa, schedule)
 }
 
-final class RetryOps[E, F[+_]: MonadError[?[_], E]: Timer, A](fa: F[A]) {
+final class RetryOps[E, F[+_]: MonadError[*[_], E]: Timer, A](fa: F[A]) {
   def retry[B](policy: Schedule[F, E, B]) = Schedule.retry(fa, policy)
 }
 
