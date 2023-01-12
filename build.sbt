@@ -1,10 +1,6 @@
-import sbt.Keys._
-import sbt._
-import sbt.librarymanagement.CrossVersion
-
 organization := "com.emarsys"
 name := "scheduler"
-crossScalaVersions := List("2.13.10", "2.12.15")
+crossScalaVersions := List("2.13.10", "2.12.17")
 
 scalacOptions ++= scalacOptionsFor(scalaVersion.value)
 
@@ -19,7 +15,6 @@ libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "2.2.0"  % T
 libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "2.5.5"  % Test
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.10.3")
-libraryDependencies ++= splainDependency(scalaVersion.value)
 
 licenses := Seq("MIT" -> url("http://opensource.org/licenses/MIT"))
 homepage := Some(url("https://github.com/emartech/pure-scheduler"))
@@ -66,9 +61,3 @@ def is2_12(scalaVersion: String): Boolean =
     case Some((2, 12)) => true
     case _             => false
   }
-
-def splainDependency(version: String) = CrossVersion.partialVersion(version) match {
-  case Some((2, 12)) => Seq(compilerPlugin("io.tryp" % "splain" % "0.5.8" cross CrossVersion.patch))
-  case Some((2, 13)) => Seq(compilerPlugin("io.tryp" % "splain" % "1.0.1" cross CrossVersion.patch))
-  case _             => Seq()
-}
