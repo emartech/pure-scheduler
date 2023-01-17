@@ -2,7 +2,7 @@ package com.emarsys.scheduler
 
 import cats.{Applicative, Apply, Bifunctor, Eq, Functor, Monad, MonadError}
 import cats.arrow.Profunctor
-import cats.effect.{Async, Timer}
+import cats.effect.{Async, Clock, GenTemporal, Temporal}
 import cats.syntax.all._
 
 import scala.concurrent.duration._
@@ -40,11 +40,11 @@ object Schedule extends Scheduler with ScheduleInstances with PredefinedSchedule
 trait Scheduler {
   import Schedule.Decision
 
-  def run[F[+_]: Monad: Timer, A, B](F: F[A], schedule: Schedule[F, A, B]): F[B] = {
+  def run[F[+_]: Temporal, A, B](F: F[A], schedule: Schedule[F, A, B]): F[B] = {
     def loop(decision: Decision[schedule.State, B]): F[B] =
       if (decision.continue)
         for {
-          _ <- Timer[F].sleep(decision.delay)
+          _ <- Temporal[F].sleep(decision.delay)
           a <- F
           d <- schedule.update(a, decision.state)
           b <- loop(d)
@@ -54,7 +54,7 @@ trait Scheduler {
     schedule.initial
       .flatMap(initial =>
         for {
-          _ <- Timer[F].sleep(initial.delay)
+          _ <- Temporal[F].sleep(initial.delay)
           a <- F
           d <- schedule.update(a, initial.state)
         } yield d
@@ -62,22 +62,25 @@ trait Scheduler {
       .flatMap(loop)
   }
 
-  def retry[E, F[+_]: MonadError[_[_], E]: Timer, A, B](F: F[A], policy: Schedule[F, E, B]): F[A] = {
+  def retry[E, F[+_]: GenTemporal[_[_], E], A, B](
+      fa: F[A],
+      policy: Schedule[F, E, B]
+  ): F[A] = {
     def loop(decision: Decision[policy.State, B]): PartialFunction[E, F[A]] = {
       case e if decision.continue =>
         for {
-          _    <- Timer[F].sleep(decision.delay)
+          _    <- Temporal[F].sleep(decision.delay)
           next <- policy.update(e, decision.state)
-          a    <- F.recoverWith(loop(next))
+          a    <- MonadError[F, E].recoverWith(fa)(loop(next))
         } yield a
     }
 
-    F recoverWith { case e =>
+    MonadError[F, E].recoverWith(fa) { case e =>
       for {
         initial <- policy.initial
-        _       <- Timer[F].sleep(initial.delay)
+        _       <- Temporal[F].sleep(initial.delay)
         d       <- policy.update(e, initial.state)
-        a       <- F.recoverWith(loop(d))
+        a       <- MonadError[F, E].recoverWith(fa)(loop(d))
       } yield a
     }
   }
@@ -186,24 +189,23 @@ trait PredefinedSchedules {
   def spaced[F[+_]: Monad](interval: FiniteDuration): Schedule[F, Any, Int] =
     forever.space(interval)
 
-  def fixed[F[+_]: Monad: Timer](interval: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+  def fixed[F[+_]: Monad: Clock](interval: FiniteDuration): Schedule[F, Any, FiniteDuration] =
     Schedule.mapDecision(elapsed.map(elapsed => (interval - elapsed) max Duration.Zero)) { d =>
       val (_, n) = d.state
       d.copy(
-        state = (d.result.toNanos + n, n),
+        state = (d.result + n, n),
         delay = d.result
       )
     }
 
-  def elapsed[F[+_]: Functor: Timer]: Schedule.Aux[F, (Long, Long), Any, FiniteDuration] =
-    timing.map { case (s, n) => (n - s).nanos }
+  def elapsed[F[+_]: Functor: Clock]: Schedule.Aux[F, (FiniteDuration, FiniteDuration), Any, FiniteDuration] =
+    timing.map { case (s, n) => (n - s) }
 
-  def timing[F[+_]: Functor: Timer]: Schedule.Aux[F, (Long, Long), Any, (Long, Long)] =
-    unfoldM(Timer[F].clock.monotonic(NANOSECONDS).map(n => (n, n))) { case (s, _) =>
-      Timer[F].clock.monotonic(NANOSECONDS).map(n => (s, n))
-    }
+  def timing[F[+_]: Functor: Clock]
+      : Schedule.Aux[F, (FiniteDuration, FiniteDuration), Any, (FiniteDuration, FiniteDuration)] =
+    unfoldM(Clock[F].monotonic.map(n => (n, n))) { case (s, _) => Clock[F].monotonic.map(n => (s, n)) }
 
-  def maxFor[F[+_]: Monad: Timer](timeCap: FiniteDuration): Schedule[F, Any, FiniteDuration] =
+  def maxFor[F[+_]: Monad: Clock](timeCap: FiniteDuration): Schedule[F, Any, FiniteDuration] =
     elapsed.reconsider(_.result < timeCap)
 
   def continueOn[F[+_]: Monad](b: Boolean): Schedule[F, Boolean, Int] =

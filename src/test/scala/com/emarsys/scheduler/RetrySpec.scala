@@ -1,9 +1,12 @@
 package com.emarsys.scheduler
 
-import cats.effect.IO
-import cats.effect.concurrent.Ref
-import org.scalatest.wordspec.AnyWordSpec
+import cats.effect.kernel.Outcome.Succeeded
+import cats.effect.testkit.TestControl
+import cats.effect.unsafe.implicits.global
+import cats.effect.{Clock, IO, Ref}
 import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
+import scala.concurrent.Await
 
 import scala.concurrent.duration._
 import scala.util._
@@ -37,14 +40,14 @@ class RetrySpec extends AnyWordSpec with Matchers {
       _ =>
         for {
           evals <- evalsRef.get
-          now   <- timer.clock.realTime(SECONDS)
-          _     <- timestampsRef.modify(ts => (Timestamps(evals.head, now) :: ts, ()))
+          now   <- Clock[IO].monotonic
+          _     <- timestampsRef.modify(ts => (Timestamps(evals.head, now.toSeconds) :: ts, ()))
         } yield ()
 
     def recordEvaluation(ref: Ref[IO, List[Long]]): IO[Unit] =
       for {
-        evalTime <- timer.clock.realTime(SECONDS)
-        _        <- ref.modify(ets => (evalTime :: ets, ()))
+        evalTime <- Clock[IO].monotonic
+        _        <- ref.modify(ets => (evalTime.toSeconds :: ets, ()))
       } yield ()
 
     lazy val program = for {
@@ -57,16 +60,24 @@ class RetrySpec extends AnyWordSpec with Matchers {
       timestamps <- timestampsRef.get
     } yield timestamps.reverse
 
-    lazy val runProgram = {
-      val f = program.unsafeToFuture
-      ctx.tick(timeBox)
-      f
-    }
+    lazy val runProgram = TestControl
+      .execute(program)
+      .flatMap { control =>
+        println("before tick")
+        for {
+          _ <- control.tickFor(timeBox)
+          _ = println("after tick for")
+          results <- control.results
+          _ = println(s"after result: $results")
+        } yield results
+      }
+      .unsafeToFuture
 
-    lazy val timestamps = runProgram.value match {
-      case None              => fail(s"Retrying of the program has not completed in $timeBox")
-      case Some(Failure(e))  => fail(e.toString, e)
-      case Some(Success(ts)) => ts
+    lazy val timestamps = Await.ready(runProgram, timeBox).value match {
+      case None => fail(s"Retrying of the program has not completed in $timeBox")
+      case Some(Failure(e)) => fail(e.toString, e)
+      case Some(Success(Some(Succeeded(ts)))) => ts
+      case e                   => fail(s"Some error: $e")
     }
 
     lazy val retryCount = timestamps.length

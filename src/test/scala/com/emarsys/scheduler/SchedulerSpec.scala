@@ -1,10 +1,14 @@
 package com.emarsys.scheduler
 
-import cats.effect.IO
-import cats.effect.concurrent.Ref
+import cats.effect.kernel.Clock
+import cats.effect.kernel.Outcome.Succeeded
+import cats.effect.testkit.TestControl
+import cats.effect.unsafe.implicits.global
+import cats.effect.{IO, Ref, Temporal}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatest.matchers.should.Matchers
 
+import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util._
 
@@ -17,16 +21,21 @@ class SchedulerSpec extends AnyWordSpec with Matchers {
     val timeBox = 5 seconds
     val program: IO[Out]
 
-    lazy val runProgram = {
-      val f = program.unsafeToFuture
-      ctx.tick(timeBox)
-      f
-    }
+    lazy val runProgram = TestControl
+      .execute(program)
+      .flatMap { control =>
+        for {
+          _       <- control.tickFor(timeBox)
+          results <- control.results
+        } yield results
+      }
+      .unsafeToFuture
 
-    lazy val endState = runProgram.value match {
-      case None                 => fail(s"Scheduled program has not completed in $timeBox")
-      case Some(Failure(e))     => fail(e.toString, e)
-      case Some(Success(state)) => state
+    lazy val endState = Await.ready(runProgram, timeBox).value match {
+      case None                                  => fail(s"Scheduled program has not completed in $timeBox")
+      case Some(Failure(e))                      => fail(e.toString, e)
+      case Some(Success(Some(Succeeded(state)))) => state
+      case e                                     => fail(s"Some error: $e")
     }
   }
 
@@ -39,18 +48,18 @@ class SchedulerSpec extends AnyWordSpec with Matchers {
 
     val collectRunTimes: Ref[IO, List[Long]] => IO[Unit] = { ref =>
       for {
-        current <- timer.clock.realTime(SECONDS)
-        _       <- ref.modify(ts => (current :: ts, ()))
+        current <- Clock[IO].monotonic
+        _       <- ref.modify(ts => (current.toSeconds :: ts, ()))
         _       <- io
       } yield ()
     }
 
     val program = for {
       ref      <- Ref.of[IO, List[Long]](Nil)
-      start    <- timer.clock.realTime(SECONDS)
+      start    <- Clock[IO].monotonic
       _        <- collectRunTimes(ref).runOn(schedule).timeoutTo(timeBox, IO.unit)
       runTimes <- ref.get
-    } yield (start, runTimes)
+    } yield (start.toSeconds, runTimes)
 
     lazy val (start, runTimes)          = endState
     lazy val differencesBetweenRunTimes = runTimes.zip(runTimes.tail) map { case (c, p) => c - p }
@@ -75,10 +84,10 @@ class SchedulerSpec extends AnyWordSpec with Matchers {
       type Out = (Long, Long)
 
       val program = for {
-        start <- timer.clock.realTime(SECONDS)
+        start <- Clock[IO].monotonic
         _     <- IO(100).runOn(Schedule.occurs(1).after(1.second))
-        end   <- timer.clock.realTime(SECONDS)
-      } yield (start, end)
+        end   <- Clock[IO].monotonic
+      } yield (start.toSeconds, end.toSeconds)
 
       val (start, end) = endState
       end - start shouldEqual 1
@@ -110,7 +119,7 @@ class SchedulerSpec extends AnyWordSpec with Matchers {
       override val timeBox = 20.seconds
       override val io = for {
         seconds <- IO.delay(new scala.util.Random().nextInt(3) + 1)
-        _       <- timer.sleep(seconds.seconds)
+        _       <- Temporal[IO].sleep(seconds.seconds)
       } yield ()
       val schedule = Schedule.fixed(5.seconds)
 
@@ -119,7 +128,7 @@ class SchedulerSpec extends AnyWordSpec with Matchers {
     }
 
     "not introduce further delay if the effect takes more time than the fixed spacing" in new RunTimesScope {
-      override val io = timer.sleep(2.seconds)
+      override val io = Temporal[IO].sleep(2.seconds)
       val schedule    = Schedule.fixed(1.second)
 
       startedImmediately
@@ -188,7 +197,7 @@ class SchedulerSpec extends AnyWordSpec with Matchers {
     "continue without delay until the specified time cap is reached, outputting the total time that has passed" in new ScheduleScope {
       type Out = FiniteDuration
 
-      val program = timer.sleep(2.seconds).runOn(Schedule.maxFor(3.seconds))
+      val program = Temporal[IO].sleep(2.seconds).runOn(Schedule.maxFor(3.seconds))
 
       endState shouldEqual 4.seconds
     }
@@ -208,10 +217,10 @@ class SchedulerSpec extends AnyWordSpec with Matchers {
         type Out = (Long, Long)
 
         val program = for {
-          start <- timer.clock.realTime(SECONDS)
+          start <- Clock[IO].monotonic
           _     <- IO(100).runOn(Schedule.occurs(1).after(1.second) && Schedule.occurs(1))
-          end   <- timer.clock.realTime(SECONDS)
-        } yield (start, end)
+          end   <- Clock[IO].monotonic
+        } yield (start.toSeconds, end.toSeconds)
 
         val (start, end) = endState
         end - start shouldEqual 1
@@ -237,10 +246,10 @@ class SchedulerSpec extends AnyWordSpec with Matchers {
         type Out = (Long, Long)
 
         val program = for {
-          start <- timer.clock.realTime(SECONDS)
+          start <- Clock[IO].monotonic
           _     <- IO(100).runOn(Schedule.occurs(1).after(2.second) || Schedule.occurs(1).after(1.second))
-          end   <- timer.clock.realTime(SECONDS)
-        } yield (start, end)
+          end   <- Clock[IO].monotonic
+        } yield (start.toSeconds, end.toSeconds)
 
         val (start, end) = endState
         end - start shouldEqual 1
