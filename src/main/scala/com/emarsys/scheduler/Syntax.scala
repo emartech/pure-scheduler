@@ -9,7 +9,7 @@ import cats.effect.Temporal
 trait Syntax {
   implicit def toScheduleOps[F[+_]: Monad: Temporal, A](fa: F[A])               = new ScheduleOps(fa)
   implicit def toRetryOps[E, F[+_]: MonadError[*[_], E]: Temporal, A](fa: F[A]) = new RetryOps(fa)
-  implicit def toCombinators[F[+_]: Monad, A, B](s: Schedule[F, A, B])       = new ScheduleCombinators(s)
+  implicit def toCombinators[F[+_]: Monad, A, B](s: Schedule[F, A, B])          = new ScheduleCombinators(s)
 }
 
 final class ScheduleOps[F[+_]: Monad: Temporal, A](fa: F[A]) {
