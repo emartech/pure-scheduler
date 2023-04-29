@@ -1,5 +1,5 @@
-organization := "com.emarsys"
-name := "scheduler"
+organization       := "com.emarsys"
+name               := "scheduler"
 crossScalaVersions := List("2.13.10", "2.12.17")
 
 scalacOptions ++= scalacOptionsFor(scalaVersion.value)
@@ -7,12 +7,12 @@ scalacOptions ++= scalacOptionsFor(scalaVersion.value)
 scalafmtOnCompile := true
 
 libraryDependencies += "org.typelevel"  %% "cats-core"            % "2.9.0"
-libraryDependencies += "org.typelevel"  %% "cats-effect"          % "2.5.5"
+libraryDependencies += "org.typelevel"  %% "cats-effect"          % "3.4.10"
 libraryDependencies += "org.scalacheck" %% "scalacheck"           % "1.17.0" % Test
 libraryDependencies += "org.scalatest"  %% "scalatest"            % "3.2.15" % Test
 libraryDependencies += "org.typelevel"  %% "cats-laws"            % "2.9.0"  % Test
 libraryDependencies += "org.typelevel"  %% "discipline-scalatest" % "2.2.0"  % Test
-libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "2.5.5"  % Test
+libraryDependencies += "org.typelevel"  %% "cats-effect-laws"     % "3.4.10" % Test
 
 addCompilerPlugin("org.typelevel" %% "kind-projector" % "0.13.2" cross CrossVersion.full)
 
